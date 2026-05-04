@@ -720,7 +720,7 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
         ...(amount ? [{ type: 'text', text: amount, size: 'xs', color: '#94a3b8' }] : []),
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'xs', contents: [
-        { type: 'box', layout: 'horizontal', alignItems: 'baseline', contents: [
+        { type: 'box', layout: 'horizontal', contents: [
           { type: 'text', text: String(n.calories), size: 'xxl', weight: 'bold', color: '#111111', flex: 0 },
           { type: 'text', text: ' kcal', size: 'sm', color: '#888888', flex: 0 },
         ]},
@@ -764,7 +764,7 @@ function flexExerciseResult(name, mins, burn, daily, target) {
         { type: 'text', text: `${name} ${mins} นาที`, size: 'md', weight: 'bold', color: '#ffffff', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
-        { type: 'box', layout: 'horizontal', alignItems: 'baseline', contents: [
+        { type: 'box', layout: 'horizontal', contents: [
           { type: 'text', text: `-${burn}`, size: 'xxl', weight: 'bold', color: '#E24B4A', flex: 0 },
           { type: 'text', text: ' kcal เผาผลาญ', size: 'sm', color: '#888888', flex: 0 },
         ]},
@@ -841,11 +841,11 @@ function flexDailySummary(daily, targetCal) {
             { type: 'text', text: String(daily.calories), size: 'xxl', weight: 'bold', color: '#EF9F27' },
             { type: 'text', text: 'กิน (kcal)', size: 'xs', color: '#888888' },
           ]},
-          ...(daily.exerciseCal > 0 ? [{ type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', contents: [
+          ...(daily.exerciseCal > 0 ? [{ type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: `-${daily.exerciseCal}`, size: 'xl', weight: 'bold', color: '#E24B4A', align: 'center' },
             { type: 'text', text: 'เผาผลาญ', size: 'xs', color: '#888888', align: 'center' },
           ]}] : []),
-          { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: String(remain), size: 'xxl', weight: 'bold', color: '#1D9E75', align: 'end' },
             { type: 'text', text: 'เหลือ', size: 'xs', color: '#888888', align: 'end' },
           ]},
@@ -867,7 +867,7 @@ function flexDailySummary(daily, targetCal) {
             { type: 'text', text: 'ไขมัน', size: 'xs', color: '#A32D2D', align: 'center' },
           ]},
         ]},
-        { type: 'box', layout: 'horizontal', margin: 'sm', alignItems: 'center', contents: [
+        { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
           { type: 'text', text: '💧', size: 'sm', flex: 0 },
           { type: 'text', text: `น้ำ ${daily.waterMl || 0} ml / 2,000 ml (${waterPct}%)`, size: 'xs', color: '#378ADD', flex: 1, margin: 'sm' },
         ]},
@@ -899,7 +899,7 @@ function flexIFTracker(st) {
             { type: 'text', text: `${elapsed.toFixed(1)} ชม.`, size: 'xl', weight: 'bold', color: '#1D9E75' },
             { type: 'text', text: 'ผ่านไปแล้ว', size: 'xs', color: '#888888' },
           ]},
-          { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: `${remaining.toFixed(1)} ชม.`, size: 'xl', weight: 'bold', color: '#EF9F27', align: 'end' },
             { type: 'text', text: 'เหลืออีก', size: 'xs', color: '#888888', align: 'end' },
           ]},
@@ -963,11 +963,11 @@ function flexWeeklySummary(avgCal, daysLogged, streak) {
             { type: 'text', text: String(avgCal), size: 'xl', weight: 'bold', color: '#1a1a1a' },
             { type: 'text', text: 'เฉลี่ย kcal/วัน', size: 'xs', color: '#888888' },
           ]},
-          { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', contents: [
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: `${daysLogged}/7`, size: 'xl', weight: 'bold', color: '#1D9E75', align: 'center' },
             { type: 'text', text: 'วันที่บันทึก', size: 'xs', color: '#888888', align: 'center' },
           ]},
-          { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: String(streak), size: 'xl', weight: 'bold', color: '#EF9F27', align: 'end' },
             { type: 'text', text: 'Streak (วัน)', size: 'xs', color: '#888888', align: 'end' },
           ]},
@@ -993,8 +993,7 @@ async function flexMenu(userId, plan) {
   const row = (icon, title, sub, action, locked = false) => ({
     type: 'box', layout: 'horizontal',
     backgroundColor: locked ? '#f1f5f9' : '#f9fafb',
-    cornerRadius: '10px', paddingAll: '11px', margin: 'xs', alignItems: 'center',
-    action: locked ? undefined : { type: 'message', label: title, text: action },
+    cornerRadius: '10px', paddingAll: '11px', margin: 'xs', action: locked ? undefined : { type: 'message', label: title, text: action },
     contents: [
       { type: 'text', text: icon, size: 'md', flex: 0 },
       { type: 'box', layout: 'vertical', flex: 1, paddingStart: '10px', contents: [
