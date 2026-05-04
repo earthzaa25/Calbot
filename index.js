@@ -10,6 +10,7 @@ const express  = require('express');
 const line     = require('@line/bot-sdk');
 const { createClient } = require('@supabase/supabase-js');
 const fetch    = require('node-fetch');
+const ws       = require('ws');
 
 // ── Config ──────────────────────────────────────────────────
 const lineConfig = {
@@ -21,7 +22,8 @@ const client = new line.messagingApi.MessagingApiClient({
 });
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_ANON_KEY,
+  { realtime: { transport: ws } }
 );
 
 // ── Express ──────────────────────────────────────────────────
