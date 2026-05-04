@@ -673,7 +673,7 @@ function flexWelcome() {
         ]},
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
-        { type: 'text', text: 'พิมพ์หรือถ่ายรูปอาหารได้เลยค่ะ', size: 'sm', weight: 'bold', color: '#111' },
+        { type: 'text', text: 'พิมพ์หรือถ่ายรูปอาหารได้เลยค่ะ', size: 'sm', weight: 'bold', color: '#111111' },
         { type: 'box', layout: 'vertical', backgroundColor: '#f9fafb', cornerRadius: '10px', paddingAll: '12px', margin: 'sm', contents: [
           { type: 'text', text: '"ข้าวผัดกระเพรา 1 จาน"', size: 'sm', color: '#6b7280' },
           { type: 'text', text: '"แซลมอนย่าง 150g"', size: 'sm', color: '#6b7280', margin: 'xs' },
@@ -711,8 +711,8 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'xs', contents: [
         { type: 'box', layout: 'horizontal', alignItems: 'baseline', contents: [
-          { type: 'text', text: String(n.calories), size: 'xxl', weight: 'bold', color: '#111', flex: 0 },
-          { type: 'text', text: ' kcal', size: 'sm', color: '#888', flex: 0 },
+          { type: 'text', text: String(n.calories), size: 'xxl', weight: 'bold', color: '#111111', flex: 0 },
+          { type: 'text', text: ' kcal', size: 'sm', color: '#888888', flex: 0 },
         ]},
         { type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'sm', contents: [
           { type: 'text', text: `คาร์บ ${n.carbs}g`,    size: 'xs', color: '#378ADD', flex: 1 },
@@ -756,22 +756,22 @@ function flexExerciseResult(name, mins, burn, daily, target) {
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
         { type: 'box', layout: 'horizontal', alignItems: 'baseline', contents: [
           { type: 'text', text: `-${burn}`, size: 'xxl', weight: 'bold', color: '#E24B4A', flex: 0 },
-          { type: 'text', text: ' kcal เผาผลาญ', size: 'sm', color: '#888', flex: 0 },
+          { type: 'text', text: ' kcal เผาผลาญ', size: 'sm', color: '#888888', flex: 0 },
         ]},
         { type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'sm', contents: [
           { type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#f9fafb', cornerRadius: '8px', paddingAll: '8px', contents: [
-            { type: 'text', text: `${mins} นาที`, size: 'md', weight: 'bold', color: '#111', align: 'center' },
-            { type: 'text', text: 'ระยะเวลา', size: 'xs', color: '#888', align: 'center' },
+            { type: 'text', text: `${mins} นาที`, size: 'md', weight: 'bold', color: '#111111', align: 'center' },
+            { type: 'text', text: 'ระยะเวลา', size: 'xs', color: '#888888', align: 'center' },
           ]},
           { type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#f9fafb', cornerRadius: '8px', paddingAll: '8px', contents: [
-            { type: 'text', text: `${Math.round(burn/mins*10)/10}`, size: 'md', weight: 'bold', color: '#111', align: 'center' },
-            { type: 'text', text: 'kcal/นาที', size: 'xs', color: '#888', align: 'center' },
+            { type: 'text', text: `${Math.round(burn/mins*10)/10}`, size: 'md', weight: 'bold', color: '#111111', align: 'center' },
+            { type: 'text', text: 'kcal/นาที', size: 'xs', color: '#888888', align: 'center' },
           ]},
         ]},
         { type: 'separator', margin: 'sm' },
-        { type: 'text', text: 'แคลอรี่เน็ตวันนี้', size: 'xs', color: '#888', margin: 'sm' },
+        { type: 'text', text: 'แคลอรี่เน็ตวันนี้', size: 'xs', color: '#888888', margin: 'sm' },
         { type: 'box', layout: 'horizontal', contents: [
-          { type: 'text', text: `กิน ${foodCal} − ออกกำลังกาย ${exCal}`, size: 'xs', color: '#888', flex: 2 },
+          { type: 'text', text: `กิน ${foodCal} − ออกกำลังกาย ${exCal}`, size: 'xs', color: '#888888', flex: 2 },
           { type: 'text', text: `= ${net} kcal`, size: 'xs', color: '#1D9E75', flex: 1, align: 'end', weight: 'bold' },
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '6px', margin: 'xs',
@@ -829,20 +829,20 @@ function flexDailySummary(daily, targetCal) {
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: String(daily.calories), size: 'xxl', weight: 'bold', color: '#EF9F27' },
-            { type: 'text', text: 'กิน (kcal)', size: 'xs', color: '#888' },
+            { type: 'text', text: 'กิน (kcal)', size: 'xs', color: '#888888' },
           ]},
           ...(daily.exerciseCal > 0 ? [{ type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', contents: [
             { type: 'text', text: `-${daily.exerciseCal}`, size: 'xl', weight: 'bold', color: '#E24B4A', align: 'center' },
-            { type: 'text', text: 'เผาผลาญ', size: 'xs', color: '#888', align: 'center' },
+            { type: 'text', text: 'เผาผลาญ', size: 'xs', color: '#888888', align: 'center' },
           ]}] : []),
           { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
             { type: 'text', text: String(remain), size: 'xxl', weight: 'bold', color: '#1D9E75', align: 'end' },
-            { type: 'text', text: 'เหลือ', size: 'xs', color: '#888', align: 'end' },
+            { type: 'text', text: 'เหลือ', size: 'xs', color: '#888888', align: 'end' },
           ]},
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '8px', margin: 'sm',
           contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '8px', contents: [] }] },
-        { type: 'text', text: `${pct}% ของเป้าหมาย ${targetCal} kcal`, size: 'xs', color: '#888' },
+        { type: 'text', text: `${pct}% ของเป้าหมาย ${targetCal} kcal`, size: 'xs', color: '#888888' },
         { type: 'box', layout: 'horizontal', margin: 'md', spacing: 'sm', contents: [
           { type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#E1F5EE', cornerRadius: '8px', paddingAll: '8px', contents: [
             { type: 'text', text: `${Math.round(daily.protein)}g`, size: 'md', weight: 'bold', color: '#085041', align: 'center' },
@@ -887,16 +887,16 @@ function flexIFTracker(st) {
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: `${elapsed.toFixed(1)} ชม.`, size: 'xl', weight: 'bold', color: '#1D9E75' },
-            { type: 'text', text: 'ผ่านไปแล้ว', size: 'xs', color: '#888' },
+            { type: 'text', text: 'ผ่านไปแล้ว', size: 'xs', color: '#888888' },
           ]},
           { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
             { type: 'text', text: `${remaining.toFixed(1)} ชม.`, size: 'xl', weight: 'bold', color: '#EF9F27', align: 'end' },
-            { type: 'text', text: 'เหลืออีก', size: 'xs', color: '#888', align: 'end' },
+            { type: 'text', text: 'เหลืออีก', size: 'xs', color: '#888888', align: 'end' },
           ]},
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '8px', margin: 'sm',
           contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '8px', contents: [] }] },
-        { type: 'text', text: `${pct}% · เปิดกินได้ ${endTm} น.`, size: 'xs', color: '#888' },
+        { type: 'text', text: `${pct}% · เปิดกินได้ ${endTm} น.`, size: 'xs', color: '#888888' },
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '8px', paddingAll: '10px', margin: 'md', contents: [
           { type: 'text', text: '🥚 มื้อแรกแนะนำ', size: 'xs', weight: 'bold', color: '#085041' },
           { type: 'text', text: 'ไข่ต้ม + น้ำเต้าหู้ ย่อยง่าย ไม่กระชากน้ำตาลค่ะ', size: 'xs', color: '#0F6E56', margin: 'xs', wrap: true },
@@ -951,15 +951,15 @@ function flexWeeklySummary(avgCal, daysLogged, streak) {
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'box', layout: 'vertical', flex: 1, contents: [
             { type: 'text', text: String(avgCal), size: 'xl', weight: 'bold', color: '#1a1a1a' },
-            { type: 'text', text: 'เฉลี่ย kcal/วัน', size: 'xs', color: '#888' },
+            { type: 'text', text: 'เฉลี่ย kcal/วัน', size: 'xs', color: '#888888' },
           ]},
           { type: 'box', layout: 'vertical', flex: 1, alignItems: 'center', contents: [
             { type: 'text', text: `${daysLogged}/7`, size: 'xl', weight: 'bold', color: '#1D9E75', align: 'center' },
-            { type: 'text', text: 'วันที่บันทึก', size: 'xs', color: '#888', align: 'center' },
+            { type: 'text', text: 'วันที่บันทึก', size: 'xs', color: '#888888', align: 'center' },
           ]},
           { type: 'box', layout: 'vertical', flex: 1, alignItems: 'flex-end', contents: [
             { type: 'text', text: String(streak), size: 'xl', weight: 'bold', color: '#EF9F27', align: 'end' },
-            { type: 'text', text: 'Streak (วัน)', size: 'xs', color: '#888', align: 'end' },
+            { type: 'text', text: 'Streak (วัน)', size: 'xs', color: '#888888', align: 'end' },
           ]},
         ]},
         { type: 'box', layout: 'horizontal', margin: 'md', spacing: 'xs', contents: dots },
