@@ -112,26 +112,36 @@ async function fetchNutrition(foodName) {
   const API_KEY = process.env.USDA_API_KEY;
   if (!API_KEY) return null;
   try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(foodName)}&api_key=${API_KEY}&pageSize=1&dataType=SR%20Legacy,Survey%20(FNDDS),Foundation`;
+    // ไม่ใส่ dataType เพื่อค้นหาทุก type
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(foodName)}&api_key=${API_KEY}&pageSize=3`;
     const res  = await fetch(url);
     const data = await res.json();
     const food = data.foods?.[0];
     if (!food) return null;
-    const getNutrient = (id) => {
-      const n = food.foodNutrients?.find(n => n.nutrientId === id);
+
+    // USDA ใช้ nutrientNumber (string) ไม่ใช่ nutrientId (number)
+    const getNutrient = (num) => {
+      const n = food.foodNutrients?.find(n =>
+        String(n.nutrientId) === String(num) ||
+        String(n.nutrientNumber) === String(num)
+      );
       return Math.round((n?.value || 0) * 10) / 10;
     };
+
+    // nutrientNumber: 208=Energy, 205=Carb, 203=Protein, 204=Fat
+    // 606=SatFat, 645=MUFA, 646=PUFA, 851=Omega3, 605=TransFat
+    const cal = getNutrient(208) || getNutrient(1008);
     const result = {
       foodId:         String(food.fdcId),
       label:          food.description,
-      calories:       Math.round(getNutrient(1008)),
-      carbs:          getNutrient(1005),
-      protein:        getNutrient(1003),
-      fatTotal:       getNutrient(1004),
-      fatSaturated:   getNutrient(1258),
-      fatUnsaturated: Math.round((getNutrient(1292) + getNutrient(1293)) * 10) / 10,
-      fatOmega3:      getNutrient(1404),
-      fatTrans:       getNutrient(1257),
+      calories:       Math.round(cal),
+      carbs:          getNutrient(205) || getNutrient(1005),
+      protein:        getNutrient(203) || getNutrient(1003),
+      fatTotal:       getNutrient(204) || getNutrient(1004),
+      fatSaturated:   getNutrient(606) || getNutrient(1258),
+      fatUnsaturated: Math.round(((getNutrient(645) || 0) + (getNutrient(646) || 0)) * 10) / 10,
+      fatOmega3:      getNutrient(851) || getNutrient(1404),
+      fatTrans:       getNutrient(605) || getNutrient(1257),
     };
     nutritionCache.set(key, result);
     return result;
