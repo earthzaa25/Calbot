@@ -26,7 +26,14 @@ const supabase = createClient(
 
 // ── Express ──────────────────────────────────────────────────
 const app = express();
-app.use('/webhook', line.middleware(lineConfig));
+
+// Webhook ต้องอยู่ก่อน express.json() เสมอ
+app.post('/webhook', line.middleware(lineConfig), (req, res) => {
+  Promise.all(req.body.events.map(handleEvent))
+    .then(() => res.json({ status: 'ok' }))
+    .catch(err => { console.error(err); res.status(500).end(); });
+});
+
 app.use(express.json());
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -34,12 +41,6 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
-});
-
-app.post('/webhook', (req, res) => {
-  Promise.all(req.body.events.map(handleEvent))
-    .then(() => res.json({ status: 'ok' }))
-    .catch(err => { console.error(err); res.status(500).end(); });
 });
 
 app.get('/health', (_, res) => res.json({ status: 'ok', bot: 'CalBot v2' }));
