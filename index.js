@@ -650,8 +650,14 @@ async function handleEvent(event) {
   }
 
   const user   = await getOrCreateUser(userId);
+  console.log('👤 user:', user ? user.line_user_id : 'NULL - getOrCreateUser failed');
   if (!parsed.foodNameTH) parsed.foodNameTH = parsed.foodName;
-  await saveFoodLog(userId, { ...parsed, foodName: parsed.foodNameTH }, n);
+  try {
+    await saveFoodLog(userId, { ...parsed, foodName: parsed.foodNameTH }, n);
+    console.log('✅ saveFoodLog ok:', parsed.foodNameTH);
+  } catch(saveErr) {
+    console.error('❌ saveFoodLog error:', saveErr.message);
+  }
   const tip    = await analyzeNutrition(parsed.foodNameTH || parsed.foodName, n, user?.goal || 'maintain');
   const color  = getFoodColor(n);
   const streak = await updateStreak(userId);
