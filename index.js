@@ -106,52 +106,50 @@ async function getUserPlan(userId) {
 const isPremium = plan => plan === 'premium';
 
 // ══════════════════════════════════════════════════════════════
-// NUTRITION API (USDA FoodData Central + Cache)
+// NUTRITION API — Claude AI ประมาณค่า (Phase 1)
+// เปลี่ยนเป็น Edamam เมื่อมี Premium 30+ คน
 // ══════════════════════════════════════════════════════════════
 async function fetchNutrition(foodName) {
   const key = foodName.toLowerCase().trim();
   if (nutritionCache.has(key)) return nutritionCache.get(key);
-  const API_KEY = process.env.USDA_API_KEY;
-  if (!API_KEY) return null;
   try {
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(foodName)}&api_key=${API_KEY}&pageSize=3`;
-    const res  = await fetch(url);
+    const prompt = `คุณเป็นนักโภชนาการ ประมาณข้อมูลโภชนาการของอาหารนี้: "${foodName}"
+ตอบ JSON เท่านั้น ไม่มีคำอื่น:
+{"calories":0,"carbs":0,"protein":0,"fatTotal":0,"fatSaturated":0,"fatUnsaturated":0,"fatOmega3":0,"fatTrans":0,"label":"ชื่ออาหารภาษาอังกฤษ"}
+
+กฎสำคัญ:
+- calories คำนวณจาก carbs×4 + protein×4 + fatTotal×9
+- ประมาณต่อ 1 หน่วยมาตรฐาน (1 จาน/1 ชิ้น/100g)
+- ถ้าไม่มีข้อมูลไขมันละเอียด ให้ประมาณจากประเภทอาหาร
+  (เนื้อสัตว์ไขมันสูง = fatSaturated สูง, ปลาทะเล = fatOmega3 สูง)
+- ตอบตัวเลขจริงทั้งหมด ไม่ใส่ 0 ทุกตัว`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 300, messages: [{ role: 'user', content: prompt }] }),
+    });
     const data = await res.json();
-    const food = data.foods?.[0];
-    if (!food) return null;
-
-    // ค้นหาด้วยชื่อ nutrient เพราะ USDA แต่ละ dataType ใช้ id ต่างกัน
-    const getN = (names) => {
-      const nameList = Array.isArray(names) ? names : [names];
-      for (const nm of nameList) {
-        const found = food.foodNutrients?.find(n =>
-          n.nutrientName?.toLowerCase().includes(nm.toLowerCase())
-        );
-        if (found?.value) return Math.round(found.value * 10) / 10;
-      }
-      return 0;
-    };
-
-    const fatTotal = getN(['Total lipid', 'Total fat', 'Fat']);
-    const fatSat   = getN(['Fatty acids, total saturated', 'Saturated']);
-    const fatMono  = getN(['Fatty acids, total monounsaturated', 'Monounsaturated']);
-    const fatPoly  = getN(['Fatty acids, total polyunsaturated', 'Polyunsaturated']);
-    const fatOmega = getN(['18:3 n-3', 'Omega-3', 'ALA']);
-    const fatTrans = getN(['Fatty acids, total trans', 'Trans']);
-
+    const text = data.content?.[0]?.text?.trim().replace(/```json|```/g,'').trim();
+    const match = text?.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const n = JSON.parse(match[0]);
     const result = {
-      foodId:         String(food.fdcId),
-      label:          food.description,
-      calories:       Math.round(getN(['Energy', 'Calories'])),
-      carbs:          getN(['Carbohydrate', 'Carbs']),
-      protein:        getN(['Protein']),
-      fatTotal:       fatTotal,
-      fatSaturated:   fatSat,
-      fatUnsaturated: Math.round((fatMono + fatPoly) * 10) / 10,
-      fatOmega3:      fatOmega,
-      fatTrans:       fatTrans,
+      foodId:         'claude_estimate',
+      label:          n.label || foodName,
+      calories:       Math.round(n.calories || 0),
+      carbs:          Math.round((n.carbs || 0) * 10) / 10,
+      protein:        Math.round((n.protein || 0) * 10) / 10,
+      fatTotal:       Math.round((n.fatTotal || 0) * 10) / 10,
+      fatSaturated:   Math.round((n.fatSaturated || 0) * 10) / 10,
+      fatUnsaturated: Math.round((n.fatUnsaturated || 0) * 10) / 10,
+      fatOmega3:      Math.round((n.fatOmega3 || 0) * 10) / 10,
+      fatTrans:       Math.round((n.fatTrans || 0) * 10) / 10,
+      isEstimate:     true,
     };
+    // Cache ไว้ 1 ชั่วโมง เพื่อประหยัด API call
     nutritionCache.set(key, result);
+    setTimeout(() => nutritionCache.delete(key), 3600000);
     return result;
   } catch { return null; }
 }
@@ -646,7 +644,7 @@ async function handleEvent(event) {
 
   const n = await fetchNutrition(parsed.foodName);
   if (!n) {
-    return reply(event, [flexText(`❓ ไม่พบข้อมูล "${parsed.foodName}" ค่ะ\n\nลองพิมพ์ชื่ออาหารภาษาอังกฤษดูนะคะ`, [
+    return reply(event, [flexText(`❓ วิเคราะห์ "${parsed.foodName}" ไม่ได้ค่ะ\n\nลองพิมพ์ใหม่หรือระบุให้ชัดขึ้นนะคะ`, [
       { type: 'action', action: { type: 'message', label: '📋 เมนู', text: 'เมนู' } },
     ])]);
   }
@@ -732,7 +730,7 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
       header: { type: 'box', layout: 'vertical', backgroundColor: color.bg, paddingAll: '14px', contents: [
         { type: 'text', text: `${color.emoji} ${color.label}${isImage ? ' (จากรูป)' : ''}`, size: 'xs', color: color.accent, weight: 'bold' },
         { type: 'text', text: name, size: 'md', weight: 'bold', color: '#ffffff', margin: 'xs', wrap: true },
-        ...(amount ? [{ type: 'text', text: amount, size: 'xs', color: '#94a3b8' }] : []),
+        ...(amount ? [{ type: 'text', text: `${amount}${n.isEstimate ? ' · ค่าโดยประมาณ*' : ''}`, size: 'xs', color: '#94a3b8' }] : []),
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'xs', contents: [
         { type: 'box', layout: 'horizontal', contents: [
@@ -757,6 +755,7 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
             contents: [{ type: 'text', text: `💡 ${tip}`, size: 'xs', color: '#065f46', wrap: true }] },
         ] : []),
         ...streakMsg,
+        ...(n.isEstimate ? [{ type: 'text', text: '* ค่าโดยประมาณจาก AI ± 10–20%', size: 'xxs', color: '#94a3b8', margin: 'sm' }] : []),
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
         { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '📊 ดูสรุปวันนี้', text: 'สรุปวันนี้' } },
