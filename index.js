@@ -183,11 +183,18 @@ function estCalBurned(name, mins, weightKg = 65) {
 // CLAUDE AI — Parse อาหาร
 // ══════════════════════════════════════════════════════════════
 async function parseFoodWithClaude(text) {
-  const prompt = `วิเคราะห์ข้อความนี้: "${text}"
-ตอบ JSON เท่านั้น:
-{"isFood":true/false,"foodName":"ชื่ออาหารภาษาอังกฤษ","amountDesc":"ปริมาณ","mealType":"breakfast/lunch/dinner/snack/other","isWater":false,"waterMl":null}
-ถ้าเป็นน้ำหรือเครื่องดื่มไม่มีแคลอรี่ {"isFood":true,"isWater":true,"waterMl":250}
-ถ้าไม่ใช่อาหาร {"isFood":false}`;
+  const prompt = `วิเคราะห์ข้อความภาษาไทยหรืออังกฤษนี้: "${text}"
+แปลชื่ออาหารเป็นภาษาอังกฤษสำหรับค้นหาใน USDA database เสมอ
+ตอบ JSON เท่านั้น ไม่มีคำอื่น:
+{"isFood":true,"foodName":"English food name for USDA search","amountDesc":"ปริมาณ","mealType":"breakfast/lunch/dinner/snack/other","isWater":false,"waterMl":null}
+
+ตัวอย่าง:
+"ข้าวผัดกระเพราหมูสับ 1 จาน" -> {"isFood":true,"foodName":"stir fried basil pork rice","amountDesc":"1 จาน","mealType":"lunch","isWater":false,"waterMl":null}
+"แซลมอนย่าง 150g" -> {"isFood":true,"foodName":"grilled salmon","amountDesc":"150g","mealType":"other","isWater":false,"waterMl":null}
+"ชาไทยหวานน้อย" -> {"isFood":true,"foodName":"Thai iced tea","amountDesc":"1 แก้ว","mealType":"other","isWater":false,"waterMl":null}
+"น้ำเปล่า 1 แก้ว" -> {"isFood":true,"foodName":"water","amountDesc":"1 แก้ว","mealType":"other","isWater":true,"waterMl":250}
+"ไก่ทอด 2 ชิ้น" -> {"isFood":true,"foodName":"fried chicken","amountDesc":"2 ชิ้น","mealType":"other","isWater":false,"waterMl":null}
+"สวัสดี" -> {"isFood":false}`;
   return callClaude(prompt, 200);
 }
 
