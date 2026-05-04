@@ -76,20 +76,37 @@ const exerciseCache   = new Map();
 // USER MANAGEMENT
 // ══════════════════════════════════════════════════════════════
 async function getOrCreateUser(userId) {
-  const { data } = await supabase.from('users').select('*').eq('line_user_id', userId).single();
-  if (data) return data;
-  let displayName = null;
   try {
-    const p = await (await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
-      headers: { Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}` },
-    })).json();
-    displayName = p.displayName || null;
-  } catch {}
-  const { data: newUser } = await supabase.from('users').insert({
-    line_user_id: userId, display_name: displayName,
-    plan: 'free', goal: 'maintain', target_calories: 1300,
-  }).select().single();
-  return newUser;
+    const { data, error } = await supabase.from('users').select('*').eq('line_user_id', userId).single();
+    if (data) return data;
+    if (error && error.code !== 'PGRST116') {
+      console.error('❌ getOrCreateUser select error:', error.message, error.code);
+    }
+    // ดึงชื่อจาก Line Profile
+    let displayName = null;
+    try {
+      const p = await (await fetch(`https://api.line.me/v2/bot/profile/${userId}`, {
+        headers: { Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}` },
+      })).json();
+      displayName = p.displayName || null;
+    } catch(e) {
+      console.error('❌ getProfile error:', e.message);
+    }
+    // สร้าง user ใหม่
+    const { data: newUser, error: insertError } = await supabase.from('users').insert({
+      line_user_id: userId, display_name: displayName,
+      plan: 'free', goal: 'maintain', target_calories: 1300,
+    }).select().single();
+    if (insertError) {
+      console.error('❌ getOrCreateUser insert error:', insertError.message, insertError.code);
+      return null;
+    }
+    console.log('✅ Created new user:', userId);
+    return newUser;
+  } catch(e) {
+    console.error('❌ getOrCreateUser exception:', e.message);
+    return null;
+  }
 }
 
 async function getUserPlan(userId) {
