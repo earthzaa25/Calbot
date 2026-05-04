@@ -668,8 +668,8 @@ function flexWelcome() {
         { type: 'text', text: 'สวัสดีค่ะ!', size: 'xxl', weight: 'bold', color: '#ffffff', margin: 'xs' },
         { type: 'text', text: 'โค้ชสุขภาพส่วนตัวใน Line', size: 'sm', color: '#1D9E75', margin: 'xs' },
         { type: 'box', layout: 'horizontal', margin: 'md', spacing: 'sm', contents: [
-          { type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '20px', paddingAll: '6px', paddingStart: '10px', paddingEnd: '10px', contents: [{ type: 'text', text: 'ฟรีตลอด', size: 'xs', color: '#fff', weight: 'bold' }] },
-          { type: 'box', layout: 'vertical', backgroundColor: '#0F6E56', cornerRadius: '20px', paddingAll: '6px', paddingStart: '10px', paddingEnd: '10px', contents: [{ type: 'text', text: 'AI โค้ช', size: 'xs', color: '#fff', weight: 'bold' }] },
+          { type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '20px', paddingAll: '6px', paddingStart: '10px', paddingEnd: '10px', contents: [{ type: 'text', text: 'ฟรีตลอด', size: 'xs', color: '#ffffff', weight: 'bold' }] },
+          { type: 'box', layout: 'vertical', backgroundColor: '#0F6E56', cornerRadius: '20px', paddingAll: '6px', paddingStart: '10px', paddingEnd: '10px', contents: [{ type: 'text', text: 'AI โค้ช', size: 'xs', color: '#ffffff', weight: 'bold' }] },
         ]},
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
@@ -706,7 +706,7 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: color.bg, paddingAll: '14px', contents: [
         { type: 'text', text: `${color.emoji} ${color.label}${isImage ? ' (จากรูป)' : ''}`, size: 'xs', color: color.accent, weight: 'bold' },
-        { type: 'text', text: name, size: 'md', weight: 'bold', color: '#fff', margin: 'xs', wrap: true },
+        { type: 'text', text: name, size: 'md', weight: 'bold', color: '#ffffff', margin: 'xs', wrap: true },
         ...(amount ? [{ type: 'text', text: amount, size: 'xs', color: '#94a3b8' }] : []),
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'xs', contents: [
@@ -751,7 +751,7 @@ function flexExerciseResult(name, mins, burn, daily, target) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#064e3b', paddingAll: '14px', contents: [
         { type: 'text', text: '🏃 บันทึกออกกำลังกาย', size: 'xs', color: '#6ee7b7' },
-        { type: 'text', text: `${name} ${mins} นาที`, size: 'md', weight: 'bold', color: '#fff', margin: 'xs' },
+        { type: 'text', text: `${name} ${mins} นาที`, size: 'md', weight: 'bold', color: '#ffffff', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
         { type: 'box', layout: 'horizontal', alignItems: 'baseline', contents: [
@@ -916,7 +916,7 @@ function flexIFDone(hours) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#064e3b', paddingAll: '16px', contents: [
         { type: 'text', text: '⏱️ CalBot', size: 'xs', color: '#6ee7b7' },
-        { type: 'text', text: `🎉 IF ${hours} ชั่วโมงครบแล้ว!`, size: 'lg', weight: 'bold', color: '#fff', margin: 'xs' },
+        { type: 'text', text: `🎉 IF ${hours} ชั่วโมงครบแล้ว!`, size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
         { type: 'text', text: 'ยอดเยี่ยมมากค่ะ! ถึงเวลากินมื้อแรกได้แล้วนะคะ 🥗', size: 'sm', color: '#374151', wrap: true },
@@ -1001,7 +1001,7 @@ async function flexMenu(userId, plan) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px', contents: [
         { type: 'text', text: '🥗 CalBot', size: 'xs', color: '#94a3b8' },
-        { type: 'text', text: 'เมนูหลัก', size: 'xl', weight: 'bold', color: '#fff', margin: 'xs' },
+        { type: 'text', text: 'เมนูหลัก', size: 'xl', weight: 'bold', color: '#ffffff', margin: 'xs' },
         { type: 'text', text: `● ${planLabel}`, size: 'xxs', color: planColor, weight: 'bold', margin: 'sm' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '12px', contents: [
@@ -1097,7 +1097,7 @@ function flexPayment(period, price) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px', contents: [
         { type: 'text', text: '💳 ชำระเงิน', size: 'xs', color: '#94a3b8' },
-        { type: 'text', text: `Premium — ${label}`, size: 'lg', weight: 'bold', color: '#fff', margin: 'xs' },
+        { type: 'text', text: `Premium — ${label}`, size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
         { type: 'text', text: `${price.toLocaleString()} ฿`, size: 'xxl', weight: 'bold', color: '#1D9E75', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
