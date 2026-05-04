@@ -104,34 +104,34 @@ async function getUserPlan(userId) {
 const isPremium = plan => plan === 'premium';
 
 // ══════════════════════════════════════════════════════════════
-// NUTRITION API (Edamam + Cache)
+// NUTRITION API (USDA FoodData Central + Cache)
 // ══════════════════════════════════════════════════════════════
 async function fetchNutrition(foodName) {
   const key = foodName.toLowerCase().trim();
   if (nutritionCache.has(key)) return nutritionCache.get(key);
-
-  const APP_ID  = process.env.EDAMAM_APP_ID;
-  const APP_KEY = process.env.EDAMAM_APP_KEY;
-  if (!APP_ID || !APP_KEY) return null;
-
+  const API_KEY = process.env.USDA_API_KEY;
+  if (!API_KEY) return null;
   try {
-    const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${APP_ID}&app_key=${APP_KEY}&ingr=${encodeURIComponent(foodName)}&nutrition-type=cooking`;
+    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(foodName)}&api_key=${API_KEY}&pageSize=1&dataType=SR%20Legacy,Survey%20(FNDDS),Foundation`;
     const res  = await fetch(url);
     const data = await res.json();
-    const food = data.hints?.[0]?.food;
+    const food = data.foods?.[0];
     if (!food) return null;
-    const n = food.nutrients;
+    const getNutrient = (id) => {
+      const n = food.foodNutrients?.find(n => n.nutrientId === id);
+      return Math.round((n?.value || 0) * 10) / 10;
+    };
     const result = {
-      foodId:       food.foodId,
-      label:        food.label,
-      calories:     Math.round(n.ENERC_KCAL || 0),
-      carbs:        Math.round((n.CHOCDF || 0) * 10) / 10,
-      protein:      Math.round((n.PROCNT || 0) * 10) / 10,
-      fatTotal:     Math.round((n.FAT    || 0) * 10) / 10,
-      fatSaturated: Math.round((n.FASAT  || 0) * 10) / 10,
-      fatUnsaturated: Math.round(((n.FAMS || 0) + (n.FAPU || 0)) * 10) / 10,
-      fatOmega3:    Math.round((n.FAPU   || 0) * 0.4 * 10) / 10,
-      fatTrans:     Math.round((n.FATRN  || 0) * 10) / 10,
+      foodId:         String(food.fdcId),
+      label:          food.description,
+      calories:       Math.round(getNutrient(1008)),
+      carbs:          getNutrient(1005),
+      protein:        getNutrient(1003),
+      fatTotal:       getNutrient(1004),
+      fatSaturated:   getNutrient(1258),
+      fatUnsaturated: Math.round((getNutrient(1292) + getNutrient(1293)) * 10) / 10,
+      fatOmega3:      getNutrient(1404),
+      fatTrans:       getNutrient(1257),
     };
     nutritionCache.set(key, result);
     return result;
