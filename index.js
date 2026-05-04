@@ -190,18 +190,18 @@ function estCalBurned(name, mins, weightKg = 65) {
 // ══════════════════════════════════════════════════════════════
 async function parseFoodWithClaude(text) {
   const prompt = `วิเคราะห์ข้อความภาษาไทยหรืออังกฤษนี้: "${text}"
-แปลชื่ออาหารเป็นภาษาอังกฤษสำหรับค้นหาใน USDA database เสมอ
 ตอบ JSON เท่านั้น ไม่มีคำอื่น:
-{"isFood":true,"foodName":"English food name for USDA search","amountDesc":"ปริมาณ","mealType":"breakfast/lunch/dinner/snack/other","isWater":false,"waterMl":null}
+{"isFood":true,"foodNameTH":"ชื่ออาหารภาษาไทย","foodName":"English name for nutrition lookup","amountDesc":"ปริมาณ","mealType":"breakfast/lunch/dinner/snack/other","isWater":false,"waterMl":null}
 
 ตัวอย่าง:
-"ข้าวผัดกระเพราหมูสับ 1 จาน" -> {"isFood":true,"foodName":"stir fried basil pork rice","amountDesc":"1 จาน","mealType":"lunch","isWater":false,"waterMl":null}
-"แซลมอนย่าง 150g" -> {"isFood":true,"foodName":"grilled salmon","amountDesc":"150g","mealType":"other","isWater":false,"waterMl":null}
-"ชาไทยหวานน้อย" -> {"isFood":true,"foodName":"Thai iced tea","amountDesc":"1 แก้ว","mealType":"other","isWater":false,"waterMl":null}
-"น้ำเปล่า 1 แก้ว" -> {"isFood":true,"foodName":"water","amountDesc":"1 แก้ว","mealType":"other","isWater":true,"waterMl":250}
-"ไก่ทอด 2 ชิ้น" -> {"isFood":true,"foodName":"fried chicken","amountDesc":"2 ชิ้น","mealType":"other","isWater":false,"waterMl":null}
+"ข้าวผัดกระเพราหมูสับ 1 จาน" -> {"isFood":true,"foodNameTH":"ข้าวผัดกระเพราหมูสับ","foodName":"stir fried basil pork rice","amountDesc":"1 จาน","mealType":"lunch","isWater":false,"waterMl":null}
+"แซลมอนย่าง 150g" -> {"isFood":true,"foodNameTH":"แซลมอนย่าง","foodName":"grilled salmon","amountDesc":"150g","mealType":"other","isWater":false,"waterMl":null}
+"ชาไทยหวานน้อย" -> {"isFood":true,"foodNameTH":"ชาไทยหวานน้อย","foodName":"Thai iced tea low sugar","amountDesc":"1 แก้ว","mealType":"other","isWater":false,"waterMl":null}
+"น้ำเปล่า 1 แก้ว" -> {"isFood":true,"foodNameTH":"น้ำเปล่า","foodName":"water","amountDesc":"1 แก้ว","mealType":"other","isWater":true,"waterMl":250}
+"ไก่ทอด 2 ชิ้น" -> {"isFood":true,"foodNameTH":"ไก่ทอด","foodName":"fried chicken","amountDesc":"2 ชิ้น","mealType":"other","isWater":false,"waterMl":null}
+"salmon 200g" -> {"isFood":true,"foodNameTH":"แซลมอน","foodName":"salmon","amountDesc":"200g","mealType":"other","isWater":false,"waterMl":null}
 "สวัสดี" -> {"isFood":false}`;
-  return callClaude(prompt, 200);
+  return callClaude(prompt, 250);
 }
 
 // ── Parse ออกกำลังกาย ────────────────────────────────────────
@@ -468,7 +468,7 @@ async function handleEvent(event) {
       const tip    = await analyzeNutrition(f.foodName, n, user?.goal || 'maintain');
       const streak = await updateStreak(userId);
       const color  = getFoodColor(n);
-      return reply(event, [flexCalorieResult(f.foodName, f.amountDesc || '1 serving', n, color, tip, streak, true)]);
+      return reply(event, [flexCalorieResult(f.foodNameTH || f.foodName, f.amountDesc || '1 serving', n, color, tip, streak, true)]);
     } catch {
       return reply(event, [flexText('❌ อ่านรูปไม่ได้ค่ะ ลองส่งใหม่นะคะ')]);
     }
@@ -650,12 +650,13 @@ async function handleEvent(event) {
   }
 
   const user   = await getOrCreateUser(userId);
-  await saveFoodLog(userId, parsed, n);
-  const tip    = await analyzeNutrition(parsed.foodName, n, user?.goal || 'maintain');
+  if (!parsed.foodNameTH) parsed.foodNameTH = parsed.foodName;
+  await saveFoodLog(userId, { ...parsed, foodName: parsed.foodNameTH }, n);
+  const tip    = await analyzeNutrition(parsed.foodNameTH || parsed.foodName, n, user?.goal || 'maintain');
   const color  = getFoodColor(n);
   const streak = await updateStreak(userId);
 
-  return reply(event, [flexCalorieResult(parsed.foodName, parsed.amountDesc, n, color, tip, streak, false)]);
+  return reply(event, [flexCalorieResult(parsed.foodNameTH || parsed.foodName, parsed.amountDesc, n, color, tip, streak, false)]);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -737,10 +738,33 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
           { type: 'text', text: String(n.calories), size: 'xxl', weight: 'bold', color: '#111111', flex: 0 },
           { type: 'text', text: ' kcal', size: 'sm', color: '#888888', flex: 0 },
         ]},
-        { type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'sm', contents: [
-          { type: 'text', text: `คาร์บ ${n.carbs}g`,    size: 'xs', color: '#378ADD', flex: 1 },
-          { type: 'text', text: `โปรตีน ${n.protein}g`, size: 'xs', color: '#1D9E75', flex: 1 },
-          { type: 'text', text: `ไขมัน ${n.fatTotal}g`, size: 'xs', color: '#EF9F27', flex: 1 },
+        // ── Nutrient Bars ──
+        { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
+          { type: 'text', text: 'คาร์บ', size: 'xs', color: '#378ADD', flex: 2 },
+          { type: 'box', layout: 'vertical', flex: 6, justifyContent: 'center', contents: [
+            { type: 'box', layout: 'vertical', backgroundColor: '#e8f4fd', cornerRadius: '3px', height: '8px', contents: [
+              { type: 'box', layout: 'vertical', backgroundColor: '#378ADD', cornerRadius: '3px', width: `${Math.min(100, Math.round(n.carbs/3))}%`, height: '8px', contents: [] },
+            ]},
+          ]},
+          { type: 'text', text: `${n.carbs}g`, size: 'xs', color: '#378ADD', flex: 2, align: 'end', weight: 'bold' },
+        ]},
+        { type: 'box', layout: 'horizontal', margin: 'xs', contents: [
+          { type: 'text', text: 'โปรตีน', size: 'xs', color: '#1D9E75', flex: 2 },
+          { type: 'box', layout: 'vertical', flex: 6, justifyContent: 'center', contents: [
+            { type: 'box', layout: 'vertical', backgroundColor: '#e6f7f0', cornerRadius: '3px', height: '8px', contents: [
+              { type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '3px', width: `${Math.min(100, Math.round(n.protein/0.6))}%`, height: '8px', contents: [] },
+            ]},
+          ]},
+          { type: 'text', text: `${n.protein}g`, size: 'xs', color: '#1D9E75', flex: 2, align: 'end', weight: 'bold' },
+        ]},
+        { type: 'box', layout: 'horizontal', margin: 'xs', contents: [
+          { type: 'text', text: 'ไขมัน', size: 'xs', color: '#EF9F27', flex: 2 },
+          { type: 'box', layout: 'vertical', flex: 6, justifyContent: 'center', contents: [
+            { type: 'box', layout: 'vertical', backgroundColor: '#fef3e2', cornerRadius: '3px', height: '8px', contents: [
+              { type: 'box', layout: 'vertical', backgroundColor: '#EF9F27', cornerRadius: '3px', width: `${Math.min(100, Math.round(n.fatTotal/0.65))}%`, height: '8px', contents: [] },
+            ]},
+          ]},
+          { type: 'text', text: `${n.fatTotal}g`, size: 'xs', color: '#EF9F27', flex: 2, align: 'end', weight: 'bold' },
         ]},
         ...(fatItems.length ? [
           { type: 'separator', margin: 'sm' },
