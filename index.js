@@ -487,16 +487,16 @@ async function handleEvent(event) {
           const months    = state.period === '1y' ? 12 : 1;
           const expiresAt = new Date(Date.now() + months * 30 * 24 * 3600000).toISOString();
           await supabase.from('users').update({ plan: 'premium', plan_expires_at: expiresAt }).eq('line_user_id', userId);
-          return reply(event, [flexText(`🎉 อัปเกรดสำเร็จแล้วค่ะ!\n\n✅ Premium Plan — ${state.period === '1y' ? '1 ปี' : '1 เดือน'}\n💰 ฿${state.price.toLocaleString()}\n\nขอบคุณที่สนับสนุนนะคะ 🙏`, [
+          return reply(event, [flexText(`🎉 อัปเกรดสำเร็จแล้วครับ!\n\n✅ Premium Plan — ${state.period === '1y' ? '1 ปี' : '1 เดือน'}\n💰 ฿${state.price.toLocaleString()}\n\nขอบคุณที่สนับสนุนนะครับ 🙏`, [
             { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
           ])]);
         } else {
-          return reply(event, [flexText('❌ ไม่พบสลิปในรูปค่ะ\n\nกรุณาส่งสลิปจริงมานะคะ', [
+          return reply(event, [flexText('❌ ไม่พบสลิปในรูปครับ\n\nกรุณาส่งสลิปจริงมานะครับ', [
             { type: 'action', action: { type: 'message', label: '💳 ลองใหม่', text: 'แพลน' } },
           ])]);
         }
       } catch {
-        return reply(event, [flexText('⚠️ ตรวจสลิปไม่ได้ตอนนี้ค่ะ ทีมงานจะอัปเกรดให้ภายใน 30 นาทีนะคะ 🙏')]);
+        return reply(event, [flexText('⚠️ ตรวจสลิปไม่ได้ตอนนี้ครับ ทีมงานจะอัปเกรดให้ภายใน 30 นาทีนะครับ 🙏')]);
       }
     }
 
@@ -504,18 +504,18 @@ async function handleEvent(event) {
     try {
       const img64 = await getImg64(event.message.id);
       const foods = await analyzeImageFood(img64);
-      if (!foods.length) return reply(event, [flexText('🤔 ไม่เจออาหารในรูปค่ะ ลองถ่ายใหม่ให้ชัดขึ้นนะคะ')]);
+      if (!foods.length) return reply(event, [flexText('🤔 ไม่เจออาหารในรูปครับ ลองถ่ายใหม่ให้ชัดขึ้นนะครับ')]);
       const user = await getOrCreateUser(userId);
       const f    = foods[0];
       const n    = await fetchNutrition(f.foodName);
-      if (!n) return reply(event, [flexText(`🔍 เห็น "${f.foodName}" แต่ไม่พบข้อมูลค่ะ\nลองพิมพ์ชื่ออาหารแทนนะคะ`)]);
+      if (!n) return reply(event, [flexText(`🔍 เห็น "${f.foodName}" แต่ไม่พบข้อมูลครับ\nลองพิมพ์ชื่ออาหารแทนนะครับ`)]);
       await saveFoodLog(userId, { ...f, mealType: 'other' }, n);
       const tip    = await analyzeNutrition(f.foodName, n, user?.goal || 'maintain');
       const streak = await updateStreak(userId);
       const color  = getFoodColor(n);
       return reply(event, [flexCalorieResult(f.foodNameTH || f.foodName, f.amountDesc || '1 serving', n, color, tip, streak, true)]);
     } catch {
-      return reply(event, [flexText('❌ อ่านรูปไม่ได้ค่ะ ลองส่งใหม่นะคะ')]);
+      return reply(event, [flexText('❌ อ่านรูปไม่ได้ครับ ลองส่งใหม่นะครับ')]);
     }
   }
 
@@ -533,13 +533,13 @@ async function handleEvent(event) {
         await supabase.from('users').update({ goal }).eq('line_user_id', userId);
         const cal = { lose: 1200, gain: 2000, maintain: 1500 }[goal];
         userState[userId] = { step: 'onboarding_cal' };
-        return reply(event, [flexText(`✅ เป้าหมาย: ${msg}\n\nแนะนำแคลอรี่ต่อวัน ${cal} kcal\nหรือพิมพ์ตัวเลขที่ต้องการเองได้เลยค่ะ`, [
+        return reply(event, [flexText(`✅ เป้าหมาย: ${msg}\n\nแนะนำแคลอรี่ต่อวัน ${cal} kcal\nหรือพิมพ์ตัวเลขที่ต้องการเองได้เลยครับ`, [
           { type: 'action', action: { type: 'message', label: `${cal} kcal (แนะนำ)`, text: `${cal}` } },
           { type: 'action', action: { type: 'message', label: '1,300 kcal', text: '1300' } },
           { type: 'action', action: { type: 'message', label: '1,800 kcal', text: '1800' } },
         ])]);
       }
-      return reply(event, [flexText('❓ เลือกเป้าหมายด้านล่างได้เลยค่ะ')]);
+      return reply(event, [flexText('❓ เลือกเป้าหมายด้านล่างได้เลยครับ')]);
     }
 
     if (st.step === 'onboarding_cal') {
@@ -547,15 +547,15 @@ async function handleEvent(event) {
       if (cal >= 800 && cal <= 4000) {
         await supabase.from('users').update({ target_calories: cal, onboarding_done: true }).eq('line_user_id', userId);
         delete userState[userId];
-        return reply(event, [flexText(`🎉 ตั้งค่าเสร็จแล้วค่ะ!\n\n🎯 เป้าหมาย: ${cal} kcal/วัน\n\nพิมพ์ชื่ออาหารที่กิน หรือถ่ายรูปอาหารได้เลยค่ะ!`, [
+        return reply(event, [flexText(`🎉 ตั้งค่าเสร็จแล้วครับ!\n\n🎯 เป้าหมาย: ${cal} kcal/วัน\n\nพิมพ์ชื่ออาหารที่กิน หรือถ่ายรูปอาหารได้เลยครับ!`, [
           { type: 'action', action: { type: 'message', label: '🍽️ บันทึกอาหาร', text: 'เมนู' } },
         ])]);
       }
-      return reply(event, [flexText('❓ พิมพ์ตัวเลขแคลอรี่ เช่น 1300 ค่ะ')]);
+      return reply(event, [flexText('❓ พิมพ์ตัวเลขแคลอรี่ เช่น 1300 ครับ')]);
     }
 
     if (st.step === 'waitingSlip') {
-      return reply(event, [flexText('📸 ส่งรูปสลิปการโอนเงินมาได้เลยค่ะ')]);
+      return reply(event, [flexText('📸 ส่งรูปสลิปการโอนเงินมาได้เลยครับ')]);
     }
   }
 
@@ -576,7 +576,7 @@ async function handleEvent(event) {
 
   if (msg === 'ตั้งเป้าหมาย' || msg === 'เป้าหมาย') {
     userState[userId] = { step: 'onboarding_goal' };
-    return reply(event, [flexText('🎯 เลือกเป้าหมายหลักได้เลยค่ะ', [
+    return reply(event, [flexText('🎯 เลือกเป้าหมายหลักได้เลยครับ', [
       { type: 'action', action: { type: 'message', label: '🔽 ลดน้ำหนัก', text: 'ลดน้ำหนัก' } },
       { type: 'action', action: { type: 'message', label: '💪 เพิ่มกล้ามเนื้อ', text: 'เพิ่มกล้ามเนื้อ' } },
       { type: 'action', action: { type: 'message', label: '⚖️ รักษาน้ำหนัก', text: 'รักษาน้ำหนัก' } },
@@ -589,7 +589,7 @@ async function handleEvent(event) {
     const { data: logs } = await supabase.from('food_logs').select('water_ml').eq('user_id', userId).eq('log_date', today()).eq('is_water', true);
     const total = (logs || []).reduce((s, r) => s + (r.water_ml || 0), 0);
     const dots  = '🔵'.repeat(Math.min(8, Math.floor(total/250))) + '⚪'.repeat(Math.max(0, 8 - Math.floor(total/250)));
-    return reply(event, [flexText(`💧 บันทึกน้ำแล้วค่ะ!\n\nวันนี้รวม ${total} ml / เป้า 2,000 ml\n${dots}`, [
+    return reply(event, [flexText(`💧 บันทึกน้ำแล้วครับ!\n\nวันนี้รวม ${total} ml / เป้า 2,000 ml\n${dots}`, [
       { type: 'action', action: { type: 'message', label: '💧 เพิ่มอีกแก้ว', text: 'น้ำ' } },
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
     ])]);
@@ -598,7 +598,7 @@ async function handleEvent(event) {
   // IF Mode
   if (msg === 'IF' || msg.toLowerCase().includes('if mode') || msg.includes('อดอาหาร')) {
     const plan = await getUserPlan(userId);
-    if (!isPremium(plan)) return reply(event, [flexText('🔒 IF Tracker สำหรับ Premium เท่านั้นค่ะ\n\nพิมพ์ "แพลน" เพื่ออัปเกรดนะคะ', [
+    if (!isPremium(plan)) return reply(event, [flexText('🔒 IF Tracker สำหรับ Premium เท่านั้นครับ\n\nพิมพ์ "แพลน" เพื่ออัปเกรดนะครับ', [
       { type: 'action', action: { type: 'message', label: '💳 ดูแพลน', text: 'แพลน' } },
     ])]);
     const status = await getIFStatus(userId);
@@ -612,7 +612,7 @@ async function handleEvent(event) {
 
   if (msg.startsWith('เริ่ม IF')) {
     const plan = await getUserPlan(userId);
-    if (!isPremium(plan)) return reply(event, [flexText('🔒 IF Tracker สำหรับ Premium ค่ะ', [
+    if (!isPremium(plan)) return reply(event, [flexText('🔒 IF Tracker สำหรับ Premium ครับ', [
       { type: 'action', action: { type: 'message', label: '💳 อัปเกรด', text: 'แพลน' } },
     ])]);
     const h = parseInt(msg.replace('เริ่ม IF','').trim()) || 16;
@@ -623,7 +623,7 @@ async function handleEvent(event) {
 
   if (msg === 'หยุด IF' || msg === 'stop IF') {
     await stopIF(userId);
-    return reply(event, [flexText('✅ หยุด IF Mode แล้วค่ะ 👍\n\nพิมพ์อาหารมื้อแรกได้เลยค่ะ', [
+    return reply(event, [flexText('✅ หยุด IF Mode แล้วครับ 👍\n\nพิมพ์อาหารมื้อแรกได้เลยครับ', [
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
     ])]);
   }
@@ -679,10 +679,10 @@ async function handleEvent(event) {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-    if (!last) return reply(event, [flexText('ไม่มีรายการที่จะยกเลิกค่ะ')]);
+    if (!last) return reply(event, [flexText('ไม่มีรายการที่จะยกเลิกครับ')]);
     await supabase.from('food_logs').delete().eq('id', last.id);
-    return reply(event, [flexText(`✅ ยกเลิก "${last.food_name}" แล้วค่ะ
-${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
+    return reply(event, [flexText(`✅ ยกเลิก "${last.food_name}" แล้วครับ
+${last.calories} kcal ถูกหักออกแล้วนะครับ`, [
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
     ])]);
   }
@@ -717,7 +717,7 @@ ${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
   // ── อาหาร ────────────────────────────────────────────────────
   const parsed = await parseFoodWithClaude(msg);
   if (!parsed || !parsed.isFood) {
-    return reply(event, [flexText('💬 ไม่เข้าใจค่ะ\n\nพิมพ์ชื่ออาหาร เช่น "ข้าวผัดกระเพรา 1 จาน"\nหรือถ่ายรูปอาหารมาได้เลยค่ะ', [
+    return reply(event, [flexText('💬 ไม่เข้าใจครับ\n\nพิมพ์ชื่ออาหาร เช่น "ข้าวผัดกระเพรา 1 จาน"\nหรือถ่ายรูปอาหารมาได้เลยครับ', [
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
       { type: 'action', action: { type: 'message', label: '📋 เมนู', text: 'เมนู' } },
     ])]);
@@ -726,14 +726,14 @@ ${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
   if (parsed.isWater) {
     const ml = parsed.waterMl || 250;
     await saveWater(userId, ml);
-    return reply(event, [flexText(`💧 บันทึกน้ำ ${ml} ml แล้วค่ะ!`, [
+    return reply(event, [flexText(`💧 บันทึกน้ำ ${ml} ml แล้วครับ!`, [
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
     ])]);
   }
 
   const n = await fetchNutrition(parsed.foodName);
   if (!n) {
-    return reply(event, [flexText(`❓ วิเคราะห์ "${parsed.foodName}" ไม่ได้ค่ะ\n\nลองพิมพ์ใหม่หรือระบุให้ชัดขึ้นนะคะ`, [
+    return reply(event, [flexText(`❓ วิเคราะห์ "${parsed.foodName}" ไม่ได้ครับ\n\nลองพิมพ์ใหม่หรือระบุให้ชัดขึ้นนะครับ`, [
       { type: 'action', action: { type: 'message', label: '📋 เมนู', text: 'เมนู' } },
     ])]);
   }
@@ -793,7 +793,7 @@ function flexMultiFoodResult(results, foods, totalCal, remain) {
       header: {
         type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px',
         contents: [
-          { type: 'text', text: '✅ บันทึกสำเร็จแล้วค่ะ!', size: 'xs', color: '#1D9E75', weight: 'bold' },
+          { type: 'text', text: '✅ บันทึกสำเร็จแล้วครับ!', size: 'xs', color: '#1D9E75', weight: 'bold' },
           { type: 'text', text: `${results.length} รายการ`, size: 'xxl', weight: 'bold', color: '#ffffff', margin: 'xs' },
           { type: 'text', text: `รวม ${totalCal.toLocaleString()} kcal`, size: 'sm', color: '#94a3b8', margin: 'xs' },
         ],
@@ -862,11 +862,11 @@ function flexText(text, quickReplyItems = null) {
 
 // ── Welcome ──────────────────────────────────────────────────
 function flexWelcome() {
-  return { type: 'flex', altText: 'สวัสดีค่ะ! CalBot โค้ชสุขภาพ',
+  return { type: 'flex', altText: 'สวัสดีครับ! CalBot โค้ชสุขภาพ',
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '20px', contents: [
         { type: 'text', text: '🥗 CalBot', size: 'xs', color: '#94a3b8' },
-        { type: 'text', text: 'สวัสดีค่ะ!', size: 'xxl', weight: 'bold', color: '#ffffff', margin: 'xs' },
+        { type: 'text', text: 'สวัสดีครับ!', size: 'xxl', weight: 'bold', color: '#ffffff', margin: 'xs' },
         { type: 'text', text: 'โค้ชสุขภาพส่วนตัวใน Line', size: 'sm', color: '#1D9E75', margin: 'xs' },
         { type: 'box', layout: 'horizontal', margin: 'md', spacing: 'sm', contents: [
           { type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '20px', paddingAll: '6px', paddingStart: '10px', paddingEnd: '10px', contents: [{ type: 'text', text: 'ฟรีตลอด', size: 'xs', color: '#ffffff', weight: 'bold' }] },
@@ -874,12 +874,12 @@ function flexWelcome() {
         ]},
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
-        { type: 'text', text: 'พิมพ์หรือถ่ายรูปอาหารได้เลยค่ะ', size: 'sm', weight: 'bold', color: '#111111' },
+        { type: 'text', text: 'พิมพ์หรือถ่ายรูปอาหารได้เลยครับ', size: 'sm', weight: 'bold', color: '#111111' },
         { type: 'box', layout: 'vertical', backgroundColor: '#f9fafb', cornerRadius: '10px', paddingAll: '12px', margin: 'sm', contents: [
           { type: 'text', text: '"ข้าวผัดกระเพรา 1 จาน"', size: 'sm', color: '#6b7280' },
           { type: 'text', text: '"แซลมอนย่าง 150g"', size: 'sm', color: '#6b7280', margin: 'xs' },
           { type: 'text', text: '"วิ่ง 30 นาที"', size: 'sm', color: '#6b7280', margin: 'xs' },
-          { type: 'text', text: '📷 หรือถ่ายรูปอาหารส่งมาได้เลยค่ะ', size: 'sm', color: '#1D9E75', margin: 'xs' },
+          { type: 'text', text: '📷 หรือถ่ายรูปอาหารส่งมาได้เลยครับ', size: 'sm', color: '#1D9E75', margin: 'xs' },
         ]},
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
@@ -900,7 +900,7 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
 
   const streakMsg = streak > 0 && streak % 7 === 0
     ? [{ type: 'box', layout: 'vertical', backgroundColor: '#EEEDFE', cornerRadius: '6px', paddingAll: '8px', margin: 'sm',
-        contents: [{ type: 'text', text: `🏆 Streak ${streak} วันติดต่อกัน! ยอดเยี่ยมมากค่ะ!`, size: 'xs', color: '#3C3489', wrap: true }] }]
+        contents: [{ type: 'text', text: `🏆 Streak ${streak} วันติดต่อกัน! ยอดเยี่ยมมากครับ!`, size: 'xs', color: '#3C3489', wrap: true }] }]
     : [];
 
   return { type: 'flex', altText: `${color.emoji} ${name} — ${n.calories} kcal`,
@@ -1002,7 +1002,7 @@ function flexExerciseResult(name, mins, burn, daily, target) {
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '6px', margin: 'xs',
           contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '6px', contents: [] }] },
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '6px', paddingAll: '8px', margin: 'sm',
-          contents: [{ type: 'text', text: '💪 ยอดเยี่ยมมากค่ะ! มื้อถัดไปเพิ่มโปรตีนได้อีกนะคะ', size: 'xs', color: '#065f46', wrap: true }] },
+          contents: [{ type: 'text', text: '💪 ยอดเยี่ยมมากครับ! มื้อถัดไปเพิ่มโปรตีนได้อีกนะครับ', size: 'xs', color: '#065f46', wrap: true }] },
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
         { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '📊 ดูสรุปวันนี้', text: 'สรุปวันนี้' } },
@@ -1026,7 +1026,7 @@ function flexDailySummary(daily, targetCal) {
         { type: 'text', text: dateLabel, size: 'lg', weight: 'bold', color: '#1D9E75' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
-        { type: 'text', text: 'ยังไม่มีบันทึกอาหารวันนี้ค่ะ 😊', size: 'sm', color: '#6b7280', align: 'center' },
+        { type: 'text', text: 'ยังไม่มีบันทึกอาหารวันนี้ครับ 😊', size: 'sm', color: '#6b7280', align: 'center' },
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', contents: [
         { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '🍽️ บันทึกอาหาร', text: 'เมนู' } },
@@ -1039,9 +1039,9 @@ function flexDailySummary(daily, targetCal) {
   const pct    = Math.min(100, Math.round(net / targetCal * 100));
   const waterPct = Math.min(100, Math.round((daily.waterMl || 0) / 2000 * 100));
 
-  const aiTip = pct < 50 ? 'ยังเหลือแคลอรี่อีกเยอะ อย่าลืมกินให้ครบนะคะ'
-              : pct < 85 ? 'วันนี้ดีมากค่ะ! ควบคุมได้ดี'
-              : 'แคลอรี่เกือบครบแล้ว มื้อต่อไปเลือกเบาๆ นะคะ';
+  const aiTip = pct < 50 ? 'ยังเหลือแคลอรี่อีกเยอะ อย่าลืมกินให้ครบนะครับ'
+              : pct < 85 ? 'วันนี้ดีมากครับ! ควบคุมได้ดี'
+              : 'แคลอรี่เกือบครบแล้ว มื้อต่อไปเลือกเบาๆ นะครับ';
 
   return { type: 'flex', altText: `สรุปวันนี้ ${daily.calories} kcal`,
     contents: { type: 'bubble',
@@ -1106,7 +1106,7 @@ function flexIFTracker(st) {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '14px', contents: [
         { type: 'text', text: `⏱️ IF Tracker ${target}/${24-target}`, size: 'xs', color: '#94a3b8' },
-        { type: 'text', text: done ? '🎉 ครบแล้วค่ะ!' : 'กำลังอดอาหารค่ะ', size: 'lg', weight: 'bold', color: '#1D9E75' },
+        { type: 'text', text: done ? '🎉 ครบแล้วครับ!' : 'กำลังอดอาหารครับ', size: 'lg', weight: 'bold', color: '#1D9E75' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
         { type: 'box', layout: 'horizontal', contents: [
@@ -1124,7 +1124,7 @@ function flexIFTracker(st) {
         { type: 'text', text: `${pct}% · เปิดกินได้ ${endTm} น.`, size: 'xs', color: '#888888' },
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '8px', paddingAll: '10px', margin: 'md', contents: [
           { type: 'text', text: '🥚 มื้อแรกแนะนำ', size: 'xs', weight: 'bold', color: '#085041' },
-          { type: 'text', text: 'ไข่ต้ม + น้ำเต้าหู้ ย่อยง่าย ไม่กระชากน้ำตาลค่ะ', size: 'xs', color: '#0F6E56', margin: 'xs', wrap: true },
+          { type: 'text', text: 'ไข่ต้ม + น้ำเต้าหู้ ย่อยง่าย ไม่กระชากน้ำตาลครับ', size: 'xs', color: '#0F6E56', margin: 'xs', wrap: true },
         ]},
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
@@ -1137,14 +1137,14 @@ function flexIFTracker(st) {
 
 // ── IF Complete Push ──────────────────────────────────────────
 function flexIFDone(hours) {
-  return { type: 'flex', altText: `🎉 IF ${hours} ชั่วโมงครบแล้วค่ะ!`,
+  return { type: 'flex', altText: `🎉 IF ${hours} ชั่วโมงครบแล้วครับ!`,
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#064e3b', paddingAll: '16px', contents: [
         { type: 'text', text: '⏱️ CalBot', size: 'xs', color: '#6ee7b7' },
         { type: 'text', text: `🎉 IF ${hours} ชั่วโมงครบแล้ว!`, size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
-        { type: 'text', text: 'ยอดเยี่ยมมากค่ะ! ถึงเวลากินมื้อแรกได้แล้วนะคะ 🥗', size: 'sm', color: '#374151', wrap: true },
+        { type: 'text', text: 'ยอดเยี่ยมมากครับ! ถึงเวลากินมื้อแรกได้แล้วนะครับ 🥗', size: 'sm', color: '#374151', wrap: true },
       ]},
       footer: { type: 'box', layout: 'vertical', paddingAll: '12px', contents: [
         { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '🍽️ บันทึกมื้อแรก', text: 'หยุด IF' } },
@@ -1163,9 +1163,9 @@ function flexWeeklySummary(avgCal, daysLogged, streak) {
     type: 'box', layout: 'vertical', width: '12px', height: '12px', cornerRadius: '6px',
     backgroundColor: i < daysLogged ? '#1D9E75' : '#e5e7eb', contents: [],
   }));
-  const tip = daysLogged >= 6 ? 'สัปดาห์นี้ดีมากค่ะ! บันทึกเกือบครบทุกวัน'
-            : daysLogged >= 4 ? 'ทำได้ดีค่ะ สัปดาห์หน้าลองครบทุกวันดูนะคะ'
-            : 'ความสม่ำเสมอคือกุญแจสำคัญค่ะ ไปต่อได้เลย!';
+  const tip = daysLogged >= 6 ? 'สัปดาห์นี้ดีมากครับ! บันทึกเกือบครบทุกวัน'
+            : daysLogged >= 4 ? 'ทำได้ดีครับ สัปดาห์หน้าลองครบทุกวันดูนะครับ'
+            : 'ความสม่ำเสมอคือกุญแจสำคัญครับ ไปต่อได้เลย!';
   return { type: 'flex', altText: `📊 Weekly Summary ${range}`,
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px', contents: [
@@ -1286,7 +1286,7 @@ function flexChoosePeriod() {
     contents: { type: 'bubble',
       header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px', contents: [
         { type: 'text', text: '💚 Premium Plan', size: 'sm', weight: 'bold', color: '#1D9E75' },
-        { type: 'text', text: 'เลือกระยะเวลาสมัครค่ะ', size: 'xs', color: '#94a3b8', margin: 'xs' },
+        { type: 'text', text: 'เลือกระยะเวลาสมัครครับ', size: 'xs', color: '#94a3b8', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'md', contents: [
         { type: 'box', layout: 'horizontal', backgroundColor: '#f8fafc', cornerRadius: '12px', paddingAll: '14px',
@@ -1325,7 +1325,7 @@ function flexPayment(period, price) {
         { type: 'text', text: `${price.toLocaleString()} ฿`, size: 'xxl', weight: 'bold', color: '#1D9E75', margin: 'xs' },
       ]},
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
-        { type: 'text', text: 'โอนเงินมาที่ค่ะ', size: 'sm', color: '#64748b' },
+        { type: 'text', text: 'โอนเงินมาที่ครับ', size: 'sm', color: '#64748b' },
         { type: 'separator', margin: 'sm' },
         { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
           { type: 'text', text: 'ธนาคาร',   size: 'sm', color: '#94a3b8', flex: 1 },
@@ -1336,7 +1336,7 @@ function flexPayment(period, price) {
           { type: 'text', text: 'XXX-X-XXXXX-X', size: 'sm', color: '#0f172a', flex: 2, align: 'end', weight: 'bold' },
         ]},
         { type: 'separator', margin: 'md' },
-        { type: 'text', text: '📸 โอนแล้วส่งสลิปมาที่นี่ได้เลยค่ะ จะอัปเกรดให้ทันที!', size: 'xs', color: '#374151', wrap: true, margin: 'sm' },
+        { type: 'text', text: '📸 โอนแล้วส่งสลิปมาที่นี่ได้เลยครับ จะอัปเกรดให้ทันที!', size: 'xs', color: '#374151', wrap: true, margin: 'sm' },
       ]},
     },
   };
