@@ -4,8 +4,9 @@
   "description": "CalBot — โค้ชสุขภาพส่วนตัวใน Line (Free & Premium)",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node start.js",
+    "dev": "nodemon index.js",
+    "setup-menu": "node setup_richmenu.js"
   },
   "dependencies": {
     "@line/bot-sdk": "^9.3.0",
@@ -19,6 +20,6 @@
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }
