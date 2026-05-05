@@ -205,6 +205,34 @@ function estCalBurned(name, mins, weightKg = 65) {
 // ══════════════════════════════════════════════════════════════
 // CLAUDE AI — Parse อาหาร
 // ══════════════════════════════════════════════════════════════
+// ── Parse อาหารหลายอย่างพร้อมกัน ─────────────────────────────
+async function parseMultipleFoods(text) {
+  const prompt = `วิเคราะห์ข้อความนี้: "${text}"
+ถ้ามีอาหารหลายอย่าง (คั่นด้วย + , และ หรือขึ้นบรรทัดใหม่) ให้แยกออกเป็นรายการ
+ตอบ JSON array เท่านั้น:
+[{"foodNameTH":"ชื่อไทย","foodName":"English name","amountDesc":"ปริมาณ","mealType":"lunch"}]
+ถ้ามีอย่างเดียวให้ตอบ array ที่มี 1 element
+ตัวอย่าง:
+"ข้าวผัดกระเพรา + ชาไทย + ส้มตำ" -> [{"foodNameTH":"ข้าวผัดกระเพรา","foodName":"stir fried basil pork rice","amountDesc":"1 จาน","mealType":"lunch"},{"foodNameTH":"ชาไทย","foodName":"Thai iced tea","amountDesc":"1 แก้ว","mealType":"lunch"},{"foodNameTH":"ส้มตำ","foodName":"papaya salad","amountDesc":"1 ถ้วย","mealType":"lunch"}]
+"ข้าวมันไก่ 1 จาน" -> [{"foodNameTH":"ข้าวมันไก่","foodName":"Thai chicken rice","amountDesc":"1 จาน","mealType":"lunch"}]`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 500, messages: [{ role: 'user', content: prompt }] }),
+    });
+    const d = await res.json();
+    const t = d.content?.[0]?.text?.trim().replace(/```json|```/g,'').trim();
+    const m = t?.match(/\[[\s\S]*\]/);
+    return m ? JSON.parse(m[0]) : null;
+  } catch { return null; }
+}
+
+// ── ตรวจว่าเป็นอาหารหลายอย่างหรือไม่ ───────────────────────────
+function isMultipleFoods(text) {
+  return /[+&]/.test(text) || text.split(',').length > 1;
+}
+
 async function parseFoodWithClaude(text) {
   const prompt = `วิเคราะห์ข้อความภาษาไทยหรืออังกฤษนี้: "${text}"
 ตอบ JSON เท่านั้น ไม่มีคำอื่น:
@@ -642,6 +670,55 @@ async function handleEvent(event) {
     }
   }
 
+  // ── ยกเลิกรายการล่าสุด ──────────────────────────────────────
+  if (['ยกเลิก','ลบ','ลบล่าสุด','ยกเลิกล่าสุด','undo'].includes(msg.toLowerCase())) {
+    const { data: last } = await supabase
+      .from('food_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (!last) return reply(event, [flexText('ไม่มีรายการที่จะยกเลิกค่ะ')]);
+    await supabase.from('food_logs').delete().eq('id', last.id);
+    return reply(event, [flexText(`✅ ยกเลิก "${last.food_name}" แล้วค่ะ
+${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
+      { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
+    ])]);
+  }
+
+  // ── อาหารหลายอย่างพร้อมกัน ──────────────────────────────────
+  if (isMultipleFoods(msg)) {
+    const foods = await parseMultipleFoods(msg);
+    if (foods && foods.length > 1) {
+      const user = await getOrCreateUser(userId);
+      let totalCal = 0;
+      const results = [];
+      for (const f of foods) {
+        const n = await fetchNutrition(f.foodName);
+        if (n) {
+          if (!f.foodNameTH) f.foodNameTH = f.foodName;
+          try {
+            await saveFoodLog(userId, { ...f, foodName: f.foodNameTH }, n);
+            totalCal += n.calories;
+            results.push(`${f.foodNameTH} — ${n.calories} kcal`);
+          } catch(e) { console.error('saveFoodLog multi error:', e.message); }
+        } else {
+          results.push(`${f.foodNameTH} — ไม่พบข้อมูล`);
+        }
+      }
+      await updateStreak(userId);
+      const daily = await getDailySummary(userId);
+      const remain = Math.max(0, (user?.target_calories || 1300) - (daily?.calories || 0));
+      const lines = results.map((r,i) => `${i+1}. ${r}`).join('\n');
+      const summary = `✅ บันทึก ${results.length} รายการแล้วค่ะ!\n\n${lines}\n\n🔢 รวม ${totalCal} kcal\n🎯 เหลืออีก ${remain} kcal`;
+      return reply(event, [flexText(summary, [
+        { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
+        { type: 'action', action: { type: 'message', label: '↩️ ยกเลิกล่าสุด', text: 'ยกเลิก' } },
+      ])]);
+    }
+  }
+
   // ── อาหาร ────────────────────────────────────────────────────
   const parsed = await parseFoodWithClaude(msg);
   if (!parsed || !parsed.isFood) {
@@ -679,7 +756,13 @@ async function handleEvent(event) {
   const color  = getFoodColor(n);
   const streak = await updateStreak(userId);
 
-  return reply(event, [flexCalorieResult(parsed.foodNameTH || parsed.foodName, parsed.amountDesc, n, color, tip, streak, false)]);
+  return reply(event, [{ ...flexCalorieResult(parsed.foodNameTH || parsed.foodName, parsed.amountDesc, n, color, tip, streak, false),
+    quickReply: { items: [
+      { type: 'action', action: { type: 'message', label: '↩️ ยกเลิก', text: 'ยกเลิก' } },
+      { type: 'action', action: { type: 'message', label: '📊 สรุปวัน', text: 'สรุปวันนี้' } },
+      { type: 'action', action: { type: 'message', label: '➕ เพิ่มอีก', text: 'เพิ่มอาหาร' } },
+    ]},
+  }]);
 }
 
 // ══════════════════════════════════════════════════════════════
