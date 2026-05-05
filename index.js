@@ -710,12 +710,7 @@ ${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
       await updateStreak(userId);
       const daily = await getDailySummary(userId);
       const remain = Math.max(0, (user?.target_calories || 1300) - (daily?.calories || 0));
-      const lines = results.map((r,i) => `${i+1}. ${r}`).join('\n');
-      const summary = `✅ บันทึก ${results.length} รายการแล้วค่ะ!\n\n${lines}\n\n🔢 รวม ${totalCal} kcal\n🎯 เหลืออีก ${remain} kcal`;
-      return reply(event, [flexText(summary, [
-        { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
-        { type: 'action', action: { type: 'message', label: '↩️ ยกเลิกล่าสุด', text: 'ยกเลิก' } },
-      ])]);
+      return reply(event, [flexMultiFoodResult(results, foods, totalCal, remain)]);
     }
   }
 
@@ -768,6 +763,82 @@ ${last.calories} kcal ถูกหักออกแล้วนะคะ`, [
 // ══════════════════════════════════════════════════════════════
 // FLEX MESSAGE COMPONENTS
 // ══════════════════════════════════════════════════════════════
+
+// ── Multi Food Result Card ───────────────────────────────────
+function flexMultiFoodResult(results, foods, totalCal, remain) {
+  const pct = Math.min(100, Math.round((totalCal / 1300) * 100));
+
+  const rows = results.map((r, i) => {
+    const parts = r.split(' — ');
+    const name  = parts[0] || r;
+    const cal   = parts[1] || '';
+    return {
+      type: 'box', layout: 'horizontal', margin: 'sm',
+      paddingAll: '8px',
+      backgroundColor: i % 2 === 0 ? '#f8fafc' : '#ffffff',
+      cornerRadius: '6px',
+      contents: [
+        { type: 'text', text: `${i+1}.`, size: 'xs', color: '#94a3b8', flex: 0, weight: 'bold' },
+        { type: 'text', text: name, size: 'sm', color: '#1a1a1a', flex: 3, margin: 'sm', wrap: true },
+        { type: 'text', text: cal, size: 'sm', color: '#1D9E75', flex: 1, align: 'end', weight: 'bold' },
+      ],
+    };
+  });
+
+  return {
+    type: 'flex',
+    altText: `✅ บันทึก ${results.length} รายการ รวม ${totalCal} kcal`,
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '16px',
+        contents: [
+          { type: 'text', text: '✅ บันทึกสำเร็จแล้วค่ะ!', size: 'xs', color: '#1D9E75', weight: 'bold' },
+          { type: 'text', text: `${results.length} รายการ`, size: 'xxl', weight: 'bold', color: '#ffffff', margin: 'xs' },
+          { type: 'text', text: `รวม ${totalCal.toLocaleString()} kcal`, size: 'sm', color: '#94a3b8', margin: 'xs' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'none',
+        contents: [
+          ...rows,
+          { type: 'separator', margin: 'md' },
+          {
+            type: 'box', layout: 'horizontal', margin: 'md',
+            contents: [
+              { type: 'box', layout: 'vertical', flex: 1, contents: [
+                { type: 'text', text: `${totalCal.toLocaleString()}`, size: 'xl', weight: 'bold', color: '#EF9F27' },
+                { type: 'text', text: 'รวม (kcal)', size: 'xs', color: '#888888' },
+              ]},
+              { type: 'box', layout: 'vertical', flex: 1, contents: [
+                { type: 'text', text: `${remain.toLocaleString()}`, size: 'xl', weight: 'bold', color: '#1D9E75', align: 'end' },
+                { type: 'text', text: 'เหลืออีก', size: 'xs', color: '#888888', align: 'end' },
+              ]},
+            ],
+          },
+          {
+            type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0',
+            cornerRadius: '4px', height: '6px', margin: 'sm',
+            contents: [{
+              type: 'box', layout: 'vertical', backgroundColor: '#1D9E75',
+              cornerRadius: '4px', width: `${pct}%`, height: '6px', contents: [],
+            }],
+          },
+          { type: 'text', text: `${pct}% ของเป้าหมายวันนี้`, size: 'xs', color: '#888888', margin: 'xs' },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm',
+        contents: [
+          { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm',
+            action: { type: 'message', label: '📊 ดูสรุปวันนี้', text: 'สรุปวันนี้' } },
+          { type: 'button', style: 'secondary', height: 'sm',
+            action: { type: 'message', label: '↩️ ยกเลิกรายการล่าสุด', text: 'ยกเลิก' } },
+        ],
+      },
+    },
+  };
+}
 
 function flexText(text, quickReplyItems = null) {
   const lines = text.split('\n'); const title = lines[0]; const body = lines.slice(1).join('\n').trim();
