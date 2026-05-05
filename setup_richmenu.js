@@ -183,9 +183,10 @@ async function main() {
 
   // หาไฟล์รูป Rich Menu
   const imagePaths = [
+    './calbot_richmenu.jpg',
     './calbot_richmenu.png',
+    './richmenu.jpg',
     './richmenu.png',
-    '../calbot_richmenu.png',
   ];
   const imagePath = imagePaths.find(p => fs.existsSync(p));
   if (!imagePath) {
