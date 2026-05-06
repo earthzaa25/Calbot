@@ -356,6 +356,7 @@ async function getDailySummary(userId) {
   const d = today();
   const { data: foods } = await supabase.from('food_logs').select('*').eq('user_id', userId).eq('log_date', d);
   const { data: exs }   = await supabase.from('exercise_logs').select('*').eq('user_id', userId).eq('log_date', d);
+  const { data: uWT }   = await supabase.from('users').select('water_target').eq('line_user_id', userId).single();
   if (!foods && !exs) return null;
   const meals = (foods || []).filter(f => !f.is_water);
   return {
@@ -370,6 +371,7 @@ async function getDailySummary(userId) {
     exerciseCal:  (exs || []).reduce((s, r) => s + (r.calories_burned || 0), 0),
     exercises:    exs || [],
     meals,
+    waterTarget: uWT?.water_target || 2000,
   };
 }
 
@@ -618,8 +620,12 @@ async function handleEvent(event) {
     await saveWater(userId, 250);
     const { data: logs } = await supabase.from('food_logs').select('water_ml').eq('user_id', userId).eq('log_date', today()).eq('is_water', true);
     const total = (logs || []).reduce((s, r) => s + (r.water_ml || 0), 0);
-    const dots  = '🔵'.repeat(Math.min(8, Math.floor(total/250))) + '⚪'.repeat(Math.max(0, 8 - Math.floor(total/250)));
-    return reply(event, [flexText(`💧 บันทึกน้ำแล้วครับ!\n\nวันนี้รวม ${total} ml / เป้า 2,000 ml\n${dots}`, [
+    const { data: uW } = await supabase.from('users').select('water_target').eq('line_user_id', userId).single();
+    const waterTarget = uW?.water_target || 2000;
+    const filledDots = Math.min(8, Math.round(total / waterTarget * 8));
+    const dots = '🔵'.repeat(filledDots) + '⚪'.repeat(8 - filledDots);
+    const waterPct = Math.round(total / waterTarget * 100);
+    return reply(event, [flexText(`💧 บันทึกน้ำแล้วครับ!\n\nวันนี้รวม ${total.toLocaleString()} ml / เป้า ${waterTarget.toLocaleString()} ml (${waterPct}%)\n${dots}`, [
       { type: 'action', action: { type: 'message', label: '💧 เพิ่มอีกแก้ว', text: 'น้ำ' } },
       { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
     ])]);
@@ -1067,7 +1073,7 @@ function flexDailySummary(daily, targetCal) {
   const net    = daily.calories - (daily.exerciseCal || 0);
   const remain = Math.max(0, targetCal - net);
   const pct    = Math.min(100, Math.round(net / targetCal * 100));
-  const waterTarget2 = 2000;
+  const waterTarget2 = daily.waterTarget || 2000;
   const waterPct = Math.min(100, Math.round((daily.waterMl || 0) / waterTarget2 * 100));
 
   const aiTip = pct < 50 ? 'ยังเหลือแคลอรี่อีกเยอะ อย่าลืมกินให้ครบนะครับ'
@@ -1115,7 +1121,7 @@ function flexDailySummary(daily, targetCal) {
         ]},
         { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
           { type: 'text', text: '💧', size: 'sm', flex: 0 },
-          { type: 'text', text: `น้ำ ${daily.waterMl || 0} ml / 2,000 ml (${waterPct}%)`, size: 'xs', color: '#378ADD', flex: 1, margin: 'sm' },
+          { type: 'text', text: `น้ำ ${daily.waterMl || 0} ml / ${waterTarget2.toLocaleString()} ml (${waterPct}%)`, size: 'xs', color: '#378ADD', flex: 1, margin: 'sm' },
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '6px', paddingAll: '8px', margin: 'sm',
           contents: [{ type: 'text', text: aiTip, size: 'xs', color: '#065f46', wrap: true }] },
