@@ -590,7 +590,10 @@ async function handleEvent(event) {
   }
 
   // ตั้งเป้าหมายน้ำ
-  if (msg.includes('ตั้งเป้าน้ำ') || msg.includes('เป้าหมายน้ำ') || msg.match(/^น้ำ.*(\d+)/)) {
+  // ตรวจว่าเป็นคำสั่งตั้งเป้าน้ำ — รองรับหลายรูปแบบ
+  const waterCmds = ['เป้าหมายน้ำ','ตั้งเป้าน้ำ','เป้าน้ำ','ตั้งค่าน้ำ','กำหนดน้ำ','water target'];
+  const isWaterTarget = waterCmds.some(w => msg.includes(w));
+  if (isWaterTarget) {
     const numMatch = msg.match(/(\d+)/);
     if (numMatch) {
       const target = parseInt(numMatch[1]);
