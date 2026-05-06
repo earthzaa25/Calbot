@@ -278,7 +278,7 @@ async function analyzeImageFood(imageBase64) {
         model: 'claude-sonnet-4-6', max_tokens: 400,
         messages: [{ role: 'user', content: [
           { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-          { type: 'text', text: 'ดูรูปนี้ระบุอาหารทั้งหมด ตอบ JSON array เท่านั้น: [{"foodName":"ชื่ออาหารภาษาอังกฤษ","amountDesc":"ปริมาณ"}] ถ้าไม่ใช่อาหาร: []' }
+          { type: 'text', text: 'ดูรูปนี้ระบุอาหารทั้งหมดที่เห็น ตอบ JSON array เท่านั้น: [{"foodNameTH":"ชื่ออาหารภาษาไทย","foodName":"English name","amountDesc":"ปริมาณ","mealType":"lunch"}] เช่น [{"foodNameTH":"ข้าวผัดกระเพรา","foodName":"stir fried basil pork rice","amountDesc":"1 จาน","mealType":"lunch"}] ถ้าไม่ใช่อาหาร: []' }
         ]}],
       }),
     });
@@ -513,7 +513,13 @@ async function handleEvent(event) {
       const tip    = await analyzeNutrition(f.foodName, n, user?.goal || 'maintain');
       const streak = await updateStreak(userId);
       const color  = getFoodColor(n);
-      return reply(event, [flexCalorieResult(f.foodNameTH || f.foodName, f.amountDesc || '1 serving', n, color, tip, streak, true)]);
+      const displayName = f.foodNameTH || f.foodName;
+      return reply(event, [{ ...flexCalorieResult(displayName, f.amountDesc || '1 serving', n, color, tip, streak, true),
+        quickReply: { items: [
+          { type: 'action', action: { type: 'message', label: '↩️ ยกเลิก', text: 'ยกเลิก' } },
+          { type: 'action', action: { type: 'message', label: '📊 สรุปวัน', text: 'สรุปวันนี้' } },
+        ]},
+      }]);
     } catch {
       return reply(event, [flexText('❌ อ่านรูปไม่ได้ครับ ลองส่งใหม่นะครับ')]);
     }
@@ -581,6 +587,27 @@ async function handleEvent(event) {
       { type: 'action', action: { type: 'message', label: '💪 เพิ่มกล้ามเนื้อ', text: 'เพิ่มกล้ามเนื้อ' } },
       { type: 'action', action: { type: 'message', label: '⚖️ รักษาน้ำหนัก', text: 'รักษาน้ำหนัก' } },
     ])]);
+  }
+
+  // ตั้งเป้าหมายน้ำ
+  if (msg.includes('ตั้งเป้าน้ำ') || msg.includes('เป้าหมายน้ำ') || msg.match(/^น้ำ.*(\d+)/)) {
+    const numMatch = msg.match(/(\d+)/);
+    if (numMatch) {
+      const target = parseInt(numMatch[1]);
+      if (target >= 500 && target <= 5000) {
+        await supabase.from('users').update({ water_target: target }).eq('line_user_id', userId);
+        return reply(event, [flexText(`💧 ตั้งเป้าหมายน้ำใหม่แล้วครับ!
+
+🎯 เป้าหมาย: ${target.toLocaleString()} ml/วัน
+
+พิมพ์ "น้ำ" เพื่อบันทึกการดื่มน้ำได้เลยครับ`, [
+          { type: 'action', action: { type: 'message', label: '💧 บันทึกน้ำ', text: 'น้ำ' } },
+          { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
+        ])]);
+      } else {
+        return reply(event, [flexText('❓ ใส่เป้าหมายน้ำระหว่าง 500-5000 ml ครับ เช่น เป้าหมายน้ำ 2500')]);
+      }
+    }
   }
 
   // น้ำ
@@ -1037,7 +1064,8 @@ function flexDailySummary(daily, targetCal) {
   const net    = daily.calories - (daily.exerciseCal || 0);
   const remain = Math.max(0, targetCal - net);
   const pct    = Math.min(100, Math.round(net / targetCal * 100));
-  const waterPct = Math.min(100, Math.round((daily.waterMl || 0) / 2000 * 100));
+  const waterTarget2 = 2000;
+  const waterPct = Math.min(100, Math.round((daily.waterMl || 0) / waterTarget2 * 100));
 
   const aiTip = pct < 50 ? 'ยังเหลือแคลอรี่อีกเยอะ อย่าลืมกินให้ครบนะครับ'
               : pct < 85 ? 'วันนี้ดีมากครับ! ควบคุมได้ดี'
