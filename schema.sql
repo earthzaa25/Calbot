@@ -112,3 +112,6 @@ select
   ), 0) as exercise_calories
 from food_logs f
 group by f.user_id, f.log_date;
+
+-- เพิ่ม water_target column (รันใน Supabase SQL Editor)
+alter table users add column if not exists water_target int default 2000;
