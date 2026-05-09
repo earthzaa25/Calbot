@@ -252,10 +252,18 @@ async function parseFoodWithClaude(text) {
 // ── Parse ออกกำลังกาย ────────────────────────────────────────
 async function parseExerciseWithClaude(text) {
   const prompt = `วิเคราะห์ข้อความออกกำลังกายนี้: "${text}"
-ตอบ JSON เท่านั้น:
-{"isExercise":true/false,"exerciseName":"ชื่อภาษาอังกฤษ","exerciseTH":"ชื่อไทย","durationMin":30,"intensity":"low/moderate/high"}
-ถ้าไม่ใช่การออกกำลังกาย {"isExercise":false}`;
-  return callClaude(prompt, 150);
+รองรับทั้งเวลา เช่น "วิ่ง 30 นาที" และระยะทาง เช่น "วิ่ง 10 กิโล" หรือ "วิ่ง 5km"
+ถ้าเป็นระยะทาง ให้ประมาณเวลาเป็นนาทีด้วย เช่น วิ่ง 1 กิโล ≈ 6-8 นาที, ปั่น 1 กิโล ≈ 3-4 นาที
+ตอบ JSON เท่านั้น ไม่มีคำอื่น:
+{"isExercise":true,"exerciseName":"English name","exerciseTH":"ชื่อไทย","durationMin":30,"distanceKm":null,"intensity":"low/moderate/high"}
+ถ้าไม่ใช่การออกกำลังกาย: {"isExercise":false}
+
+ตัวอย่าง:
+"วิ่ง 10 กิโล" -> {"isExercise":true,"exerciseName":"running","exerciseTH":"วิ่ง","durationMin":70,"distanceKm":10,"intensity":"moderate"}
+"ปั่นจักรยาน 20km" -> {"isExercise":true,"exerciseName":"cycling","exerciseTH":"ปั่นจักรยาน","durationMin":60,"distanceKm":20,"intensity":"moderate"}
+"โยคะ 1 ชั่วโมง" -> {"isExercise":true,"exerciseName":"yoga","exerciseTH":"โยคะ","durationMin":60,"distanceKm":null,"intensity":"low"}
+"ออกกำลังกาย" -> {"isExercise":true,"exerciseName":"exercise","exerciseTH":"ออกกำลังกาย","durationMin":30,"distanceKm":null,"intensity":"moderate"}`;
+  return callClaude(prompt, 200);
 }
 
 // ── วิเคราะห์คุณภาพสารอาหาร ─────────────────────────────────
@@ -683,7 +691,17 @@ async function handleEvent(event) {
   }
 
   // ── ออกกำลังกาย ──────────────────────────────────────────────
-  const exerciseKeywords = ['วิ่ง','เดิน','ปั่น','ว่าย','ยก','โยคะ','hiit','เต้น','ออกกำลัง','running','cycling','swimming','yoga','walking'];
+  // Exercise keywords — เพิ่มให้ครอบคลุมขึ้น
+  const exerciseKeywords = [
+    // ภาษาไทย
+    'วิ่ง','เดิน','ปั่น','ว่าย','ยก','โยคะ','เต้น','ออกกำลัง','กระโดด',
+    'สควอท','พุชอัพ','ซิทอัพ','แพลงก์','ฟุตบอล','บาส','เทนนิส','แบด',
+    'ว่ายน้ำ','จักรยาน','เดินเร็ว','วิ่งเหยาะ','ออกกำลังกาย',
+    'กิโล','กม','km','กิโลเมตร',
+    // ภาษาอังกฤษ
+    'running','cycling','swimming','yoga','walking','hiit','gym',
+    'workout','exercise','jogging','cycling','lifting','cardio',
+  ];
   const hasExercise = exerciseKeywords.some(k => msg.toLowerCase().includes(k));
 
   if (hasExercise) {
@@ -700,9 +718,10 @@ async function handleEvent(event) {
       } else {
         burn = estCalBurned(parsed.exerciseName || msg, mins, weightKg);
       }
-      await saveExercise(userId, parsed.exerciseName, parsed.exerciseTH, mins, burn, parsed.intensity || 'moderate');
+      const distLabel = parsed.distanceKm ? ` (${parsed.distanceKm} กม.)` : '';
+      await saveExercise(userId, parsed.exerciseName, `${parsed.exerciseTH || parsed.exerciseName}${distLabel}`, mins, burn, parsed.intensity || 'moderate');
       const daily = await getDailySummary(userId);
-      return reply(event, [flexExerciseResult(parsed.exerciseTH || parsed.exerciseName, mins, burn, daily, user?.target_calories || 1300)]);
+      return reply(event, [flexExerciseResult(`${parsed.exerciseTH || parsed.exerciseName}${distLabel}`, mins, burn, daily, user?.target_calories || 1300)]);
     }
   }
 
