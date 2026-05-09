@@ -857,7 +857,7 @@ function flexMultiFoodResult(results, foods, totalCal, remain) {
             cornerRadius: '4px', height: '6px', margin: 'sm',
             contents: [{
               type: 'box', layout: 'vertical', backgroundColor: '#1D9E75',
-              cornerRadius: '4px', width: `${pct}%`, height: '6px', contents: [],
+              cornerRadius: '4px', width: `${Math.max(1, pct)}%`, height: '6px', contents: [],
             }],
           },
           { type: 'text', text: `${pct}% ของเป้าหมายวันนี้`, size: 'xs', color: '#888888', margin: 'xs' },
@@ -1036,7 +1036,7 @@ function flexExerciseResult(name, mins, burn, daily, target) {
           { type: 'text', text: `= ${net} kcal`, size: 'xs', color: '#1D9E75', flex: 1, align: 'end', weight: 'bold' },
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '6px', margin: 'xs',
-          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '6px', contents: [] }] },
+          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${Math.max(1, pct)}%`, height: '6px', contents: [] }] },
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '6px', paddingAll: '8px', margin: 'sm',
           contents: [{ type: 'text', text: '💪 ยอดเยี่ยมมากครับ! มื้อถัดไปเพิ่มโปรตีนได้อีกนะครับ', size: 'xs', color: '#065f46', wrap: true }] },
       ]},
@@ -1103,7 +1103,7 @@ function flexDailySummary(daily, targetCal) {
           ]},
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '8px', margin: 'sm',
-          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '8px', contents: [] }] },
+          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${Math.max(1, pct)}%`, height: '8px', contents: [] }] },
         { type: 'text', text: `${pct}% ของเป้าหมาย ${targetCal} kcal`, size: 'xs', color: '#888888' },
         { type: 'box', layout: 'horizontal', margin: 'md', spacing: 'sm', contents: [
           { type: 'box', layout: 'vertical', flex: 1, backgroundColor: '#E1F5EE', cornerRadius: '8px', paddingAll: '8px', contents: [
@@ -1157,7 +1157,7 @@ function flexIFTracker(st) {
           ]},
         ]},
         { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '8px', margin: 'sm',
-          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${pct}%`, height: '8px', contents: [] }] },
+          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${Math.max(1, pct)}%`, height: '8px', contents: [] }] },
         { type: 'text', text: `${pct}% · เปิดกินได้ ${endTm} น.`, size: 'xs', color: '#888888' },
         { type: 'box', layout: 'vertical', backgroundColor: '#f0fdf4', cornerRadius: '8px', paddingAll: '10px', margin: 'md', contents: [
           { type: 'text', text: '🥚 มื้อแรกแนะนำ', size: 'xs', weight: 'bold', color: '#085041' },
