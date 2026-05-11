@@ -277,6 +277,46 @@ async function analyzeNutrition(foodName, n, goal) {
 }
 
 // ── วิเคราะห์รูปอาหาร ────────────────────────────────────────
+async function detectImageType(imageBase64) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 50,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+          { type: 'text', text: 'รูปนี้คืออะไร? ตอบแค่คำเดียว: "food" ถ้าเป็นอาหาร หรือ "exercise" ถ้าเป็นสรุปออกกำลังกาย/fitness app' }
+        ]}],
+      }),
+    });
+    const d = await res.json();
+    const t = d.content?.[0]?.text?.trim().toLowerCase();
+    return t?.includes('exercise') ? 'exercise' : 'food';
+  } catch { return 'food'; }
+}
+
+async function analyzeExerciseImage(imageBase64) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 300,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+          { type: 'text', text: 'อ่านข้อมูลออกกำลังกายจากรูปนี้ ตอบ JSON เท่านั้น: {"exerciseTH":"ชื่อไทย","exerciseName":"english","durationMin":0,"distanceKm":null,"calories":0,"pace":null,"intensity":"moderate"} ถ้าอ่านไม่ได้ตอบ null' }
+        ]}],
+      }),
+    });
+    const d = await res.json();
+    const t = d.content?.[0]?.text?.trim().replace(/```json|```/g,'').trim();
+    if (!t || t === 'null') return null;
+    const m = t.match(/\{[\s\S]*\}/);
+    return m ? JSON.parse(m[0]) : null;
+  } catch { return null; }
+}
+
 async function analyzeImageFood(imageBase64) {
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -510,9 +550,32 @@ async function handleEvent(event) {
       }
     }
 
-    // วิเคราะห์รูปอาหาร
+    // เช็ค Premium ก่อนวิเคราะห์รูป
+    const imgPlan = await getUserPlan(userId);
+    if (!isPremium(imgPlan)) {
+      return reply(event, [flexText('🔒 วิเคราะห์รูปอาหารสำหรับ Premium เท่านั้นครับ พิมพ์แพลนเพื่ออัปเกรดได้เลยครับ', [
+        { type: 'action', action: { type: 'message', label: '💳 ดูแพลน', text: 'แพลน' } },
+      ])]);
+    }
+
+    // เช็คว่าเป็นรูปอาหารหรือรูปออกกำลังกาย
     try {
       const img64 = await getImg64(event.message.id);
+
+      // วิเคราะห์ว่าเป็นรูปอะไรก่อน
+      const imgType = await detectImageType(img64);
+
+      if (imgType === 'exercise') {
+        // วิเคราะห์รูปออกกำลังกาย
+        const exData = await analyzeExerciseImage(img64);
+        if (!exData) return reply(event, [flexText('❓ อ่านข้อมูลออกกำลังกายไม่ได้ครับ ลองส่งรูปที่เห็นตัวเลขชัดๆ นะครับ')]);
+        const user2 = await getOrCreateUser(userId);
+        await saveExercise(userId, exData.exerciseName, exData.exerciseTH, exData.durationMin, exData.calories, exData.intensity || 'moderate');
+        const daily2 = await getDailySummary(userId);
+        return reply(event, [flexExerciseImageResult(exData, daily2, user2?.target_calories || 1300)]);
+      }
+
+      // วิเคราะห์รูปอาหาร
       const foods = await analyzeImageFood(img64);
       if (!foods.length) return reply(event, [flexText('🤔 ไม่เจออาหารในรูปครับ ลองถ่ายใหม่ให้ชัดขึ้นนะครับ')]);
       const user = await getOrCreateUser(userId);
@@ -591,6 +654,8 @@ async function handleEvent(event) {
   }
 
   if (msg === 'ตั้งเป้าหมาย' || msg === 'เป้าหมาย') {
+    const goalPlan = await getUserPlan(userId);
+    if (!isPremium(goalPlan)) return reply(event, [flexText('🔒 ตั้งเป้าหมายส่วนตัวสำหรับ Premium เท่านั้นครับ พิมพ์แพลนเพื่ออัปเกรดครับ', [{ type: 'action', action: { type: 'message', label: '💳 ดูแพลน', text: 'แพลน' } }])]);
     userState[userId] = { step: 'onboarding_goal' };
     return reply(event, [flexText('🎯 เลือกเป้าหมายหลักได้เลยครับ', [
       { type: 'action', action: { type: 'message', label: '🔽 ลดน้ำหนัก', text: 'ลดน้ำหนัก' } },
@@ -1022,6 +1087,54 @@ function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
 }
 
 // ── Exercise Result ───────────────────────────────────────────
+function flexExerciseImageResult(exData, daily, target) {
+  const foodCal = daily?.calories || 0;
+  const exCal   = daily?.exerciseCal || 0;
+  const net     = foodCal - exCal;
+  const pct     = Math.min(100, Math.round(net / target * 100));
+  const distStr = exData.distanceKm ? `${exData.distanceKm} กม. · ` : '';
+  const paceStr = exData.pace ? `Pace ${exData.pace} · ` : '';
+  return { type: 'flex', altText: `🏃 ${exData.exerciseTH} — ${exData.calories} kcal`,
+    contents: { type: 'bubble',
+      header: { type: 'box', layout: 'vertical', backgroundColor: '#064e3b', paddingAll: '14px', contents: [
+        { type: 'text', text: '📷 วิเคราะห์จากรูป', size: 'xs', color: '#6ee7b7' },
+        { type: 'text', text: exData.exerciseTH || exData.exerciseName, size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
+        { type: 'text', text: `${distStr}${paceStr}${exData.durationMin} นาที`, size: 'xs', color: '#94a3b8', margin: 'xs' },
+      ]},
+      body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
+        { type: 'box', layout: 'horizontal', contents: [
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
+            { type: 'text', text: `-${exData.calories}`, size: 'xxl', weight: 'bold', color: '#E24B4A' },
+            { type: 'text', text: 'kcal เผาผลาญ', size: 'xs', color: '#888888' },
+          ]},
+          { type: 'box', layout: 'vertical', flex: 1, contents: [
+            { type: 'text', text: `${exData.durationMin}`, size: 'xxl', weight: 'bold', color: '#1D9E75', align: 'end' },
+            { type: 'text', text: 'นาที', size: 'xs', color: '#888888', align: 'end' },
+          ]},
+        ]},
+        ...(exData.distanceKm ? [{ type: 'box', layout: 'horizontal', margin: 'sm', contents: [
+          { type: 'text', text: `📍 ระยะทาง`, size: 'sm', color: '#888888', flex: 1 },
+          { type: 'text', text: `${exData.distanceKm} กม.`, size: 'sm', color: '#1D9E75', flex: 1, align: 'end', weight: 'bold' },
+        ]}] : []),
+        ...(exData.pace ? [{ type: 'box', layout: 'horizontal', contents: [
+          { type: 'text', text: `⚡ Pace`, size: 'sm', color: '#888888', flex: 1 },
+          { type: 'text', text: exData.pace, size: 'sm', color: '#378ADD', flex: 1, align: 'end', weight: 'bold' },
+        ]}] : []),
+        { type: 'separator', margin: 'sm' },
+        { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
+          { type: 'text', text: `กิน ${foodCal} − ออกกำลัง ${exCal}`, size: 'xs', color: '#888888', flex: 2 },
+          { type: 'text', text: `= ${net} kcal`, size: 'xs', color: '#1D9E75', flex: 1, align: 'end', weight: 'bold' },
+        ]},
+        { type: 'box', layout: 'vertical', backgroundColor: '#f0f0f0', cornerRadius: '4px', height: '6px', margin: 'xs',
+          contents: [{ type: 'box', layout: 'vertical', backgroundColor: '#1D9E75', cornerRadius: '4px', width: `${Math.max(1,pct)}%`, height: '6px', contents: [] }] },
+      ]},
+      footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
+        { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
+      ]},
+    },
+  };
+}
+
 function flexExerciseResult(name, mins, burn, daily, target) {
   const foodCal = daily?.calories || 0;
   const exCal   = daily?.exerciseCal || 0;
