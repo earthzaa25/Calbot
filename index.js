@@ -1502,7 +1502,7 @@ function flexPayment(period, price) {
         ]},
         { type: 'box', layout: 'horizontal', contents: [
           { type: 'text', text: 'เลขบัญชี', size: 'sm', color: '#94a3b8', flex: 1 },
-          { type: 'text', text: 'XXX-X-XXXXX-X', size: 'sm', color: '#0f172a', flex: 2, align: 'end', weight: 'bold' },
+          { type: 'text', text: '082-970-5941', size: 'sm', color: '#0f172a', flex: 2, align: 'end', weight: 'bold' },
         ]},
         { type: 'separator', margin: 'md' },
         { type: 'text', text: '📸 โอนแล้วส่งสลิปมาที่นี่ได้เลยครับ จะอัปเกรดให้ทันที!', size: 'xs', color: '#374151', wrap: true, margin: 'sm' },
