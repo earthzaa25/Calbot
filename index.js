@@ -80,7 +80,7 @@ async function getOrCreateUser(userId) {
     const { data, error } = await supabase.from('users').select('*').eq('line_user_id', userId).single();
     if (data) return data;
     if (error && error.code !== 'PGRST116') {
-      console.error('❌ getOrCreateUser select error:', error.message, error.code);
+      console.error('❌ DB select error:', error.code);
     }
     // ดึงชื่อจาก Line Profile
     let displayName = null;
@@ -90,7 +90,7 @@ async function getOrCreateUser(userId) {
       })).json();
       displayName = p.displayName || null;
     } catch(e) {
-      console.error('❌ getProfile error:', e.message);
+
     }
     // สร้าง user ใหม่
     const { data: newUser, error: insertError } = await supabase.from('users').insert({
@@ -98,13 +98,13 @@ async function getOrCreateUser(userId) {
       plan: 'free', goal: 'maintain', target_calories: 1300,
     }).select().single();
     if (insertError) {
-      console.error('❌ getOrCreateUser insert error:', insertError.message, insertError.code);
+      console.error('❌ DB insert error:', insertError.code);
       return null;
     }
-    console.log('✅ Created new user:', userId);
+    // user created
     return newUser;
   } catch(e) {
-    console.error('❌ getOrCreateUser exception:', e.message);
+    console.error('❌ DB error:', e.message);
     return null;
   }
 }
@@ -467,7 +467,7 @@ async function checkIF() {
         try {
           await client.pushMessage({ to: u.line_user_id, messages: [flexIFDone(target)] });
           await supabase.from('users').update({ if_mode: false, if_start_time: null }).eq('line_user_id', u.line_user_id);
-          console.log(`⏱️ IF done: ${u.line_user_id}`);
+          // IF push done
         } catch(e) { console.error('IF push:', e.message); }
       }
     }
@@ -494,7 +494,7 @@ async function checkWeeklySummary() {
       try {
         await client.pushMessage({ to: u.line_user_id, messages: [flexWeeklySummary(avgCal, uniqueDays, u.streak_count || 0)] });
         await supabase.from('users').update({ weekly_summary_sent: todayStr }).eq('line_user_id', u.line_user_id);
-        console.log(`📊 Weekly: ${u.line_user_id}`);
+        // Weekly push done
       } catch(e) { console.error('Weekly push:', e.message); }
     }
   } catch(e) { console.error('checkWeekly:', e); }
@@ -859,11 +859,9 @@ ${last.calories} kcal ถูกหักออกแล้วนะครับ`
   }
 
   const user   = await getOrCreateUser(userId);
-  console.log('👤 user:', user ? user.line_user_id : 'NULL - getOrCreateUser failed');
   if (!parsed.foodNameTH) parsed.foodNameTH = parsed.foodName;
   try {
     await saveFoodLog(userId, { ...parsed, foodName: parsed.foodNameTH }, n);
-    console.log('✅ saveFoodLog ok:', parsed.foodNameTH);
   } catch(saveErr) {
     console.error('❌ saveFoodLog error:', saveErr.message);
   }
