@@ -452,6 +452,20 @@ async function getIFStatus(userId) {
   return { elapsed, remaining, target, endTime, done: elapsed >= target };
 }
 
+// ── แจ้งเตือน Admin เมื่อมีคนสมัคร Premium ─────────────────────
+async function notifyAdmin(msg) {
+  const adminId = process.env.ADMIN_LINE_USER_ID;
+  if (!adminId) return;
+  try {
+    await client.pushMessage({
+      to: adminId,
+      messages: [{ type: 'text', text: msg }],
+    });
+  } catch(e) {
+    console.error('notify admin error:', e.message);
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 // PUSH SYSTEM
 // ══════════════════════════════════════════════════════════════
@@ -500,8 +514,67 @@ async function checkWeeklySummary() {
   } catch(e) { console.error('checkWeekly:', e); }
 }
 
-setInterval(checkIF,            60_000);
-setInterval(checkWeeklySummary, 60_000);
+// แจ้งเตือนลูกค้าก่อนหมดอายุ 3 วัน + แจ้ง Admin
+async function checkExpiringPremium() {
+  try {
+    const now    = getTH();
+    const hour   = now.getHours();
+    if (hour !== 9) return; // รันแค่ 09:00 น.
+
+    const in3days = new Date(now.getTime() + 3*86400000);
+    const todayStr = today();
+
+    const { data: users } = await supabase
+      .from('users')
+      .select('*')
+      .eq('plan', 'premium')
+      .not('plan_expires_at', 'is', null);
+
+    for (const u of (users || [])) {
+      const exp     = new Date(u.plan_expires_at);
+      const daysLeft= Math.ceil((exp - now) / 86400000);
+
+      // แจ้งลูกค้า 3 วันก่อนหมดอายุ
+      if (daysLeft === 3) {
+        try {
+          await client.pushMessage({
+            to: u.line_user_id,
+            messages: [{ type: 'flex', altText: '⚠️ Premium ใกล้หมดอายุแล้วครับ',
+              contents: { type: 'bubble',
+                header: { type: 'box', layout: 'vertical', backgroundColor: '#713f12', paddingAll: '16px', contents: [
+                  { type: 'text', text: '⚠️ Premium ใกล้หมดอายุ', size: 'xs', color: '#fcd34d', weight: 'bold' },
+                  { type: 'text', text: 'อีก 3 วันจะหมดอายุแล้วครับ', size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
+                ]},
+                body: { type: 'box', layout: 'vertical', paddingAll: '16px', contents: [
+                  { type: 'text', text: `หมดอายุ: ${exp.toLocaleDateString('th-TH', {day:'numeric',month:'long',year:'2-digit'})}`, size: 'sm', color: '#374151' },
+                  { type: 'text', text: 'ต่ออายุเพื่อใช้งานต่อเนื่องได้เลยครับ', size: 'sm', color: '#64748b', margin: 'sm', wrap: true },
+                ]},
+                footer: { type: 'box', layout: 'vertical', paddingAll: '12px', contents: [
+                  { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm',
+                    action: { type: 'message', label: '💳 ต่ออายุ Premium', text: 'แพลน' } },
+                ]},
+              },
+            }],
+          });
+        } catch(e) { console.error('expiring push error:', e.message); }
+      }
+
+      // แจ้ง Admin รายวันถ้ามีคนใกล้หมดอายุ
+      if (daysLeft <= 3 && daysLeft > 0) {
+        await notifyAdmin(`⚠️ Premium ใกล้หมดอายุ!\n\n👤 ${u.display_name || 'ไม่ระบุ'}\n📅 หมดอายุใน ${daysLeft} วัน (${exp.toLocaleDateString('th-TH')})`);
+      }
+
+      // แจ้ง Admin เมื่อหมดอายุแล้ว (วันแรกที่หมด)
+      if (daysLeft === 0) {
+        await notifyAdmin(`❌ Premium หมดอายุแล้ว\n\n👤 ${u.display_name || 'ไม่ระบุ'}\nกลับเป็น Free แล้วครับ`);
+      }
+    }
+  } catch(e) { console.error('checkExpiring:', e.message); }
+}
+
+setInterval(checkIF,              60_000);
+setInterval(checkWeeklySummary,   60_000);
+setInterval(checkExpiringPremium, 3600_000); // เช็คทุก 1 ชั่วโมง
 
 // ══════════════════════════════════════════════════════════════
 // USER STATE
@@ -537,6 +610,11 @@ async function handleEvent(event) {
           const months    = state.period === '1y' ? 12 : 1;
           const expiresAt = new Date(Date.now() + months * 30 * 24 * 3600000).toISOString();
           await supabase.from('users').update({ plan: 'premium', plan_expires_at: expiresAt }).eq('line_user_id', userId);
+          // แจ้ง Admin
+          const { data: newPremUser } = await supabase.from('users').select('display_name').eq('line_user_id', userId).single();
+          const planLabel = state.period === '1y' ? '1 ปี (758฿)' : '1 เดือน (79฿)';
+          const expDate   = new Date(expiresAt).toLocaleDateString('th-TH', {day:'numeric',month:'short',year:'2-digit'});
+          await notifyAdmin(`🎉 มีลูกค้าสมัคร Premium!\n\n👤 ชื่อ: ${newPremUser?.display_name || 'ไม่ระบุ'}\n💳 แพลน: ${planLabel}\n📅 หมดอายุ: ${expDate}\n\n💰 รายได้เพิ่มขึ้นแล้วครับ!`);
           return reply(event, [flexText(`🎉 อัปเกรดสำเร็จแล้วครับ!\n\n✅ Premium Plan — ${state.period === '1y' ? '1 ปี' : '1 เดือน'}\n💰 ฿${state.price.toLocaleString()}\n\nขอบคุณที่สนับสนุนนะครับ 🙏`, [
             { type: 'action', action: { type: 'message', label: '📊 สรุปวันนี้', text: 'สรุปวันนี้' } },
           ])]);
