@@ -659,18 +659,28 @@ async function handleEvent(event) {
       const user = await getOrCreateUser(userId);
       const f    = foods[0];
       const n    = await fetchNutrition(f.foodName);
-      if (!n) return reply(event, [flexText(`🔍 เห็น "${f.foodName}" แต่ไม่พบข้อมูลครับ\nลองพิมพ์ชื่ออาหารแทนนะครับ`)]);
-      await saveFoodLog(userId, { ...f, mealType: 'other' }, n);
+      if (!n) return reply(event, [flexText(`🔍 เห็น "${f.foodNameTH || f.foodName}" แต่ไม่พบข้อมูลครับ ลองพิมพ์ชื่ออาหารแทนนะครับ`)]);
       const tip    = await analyzeNutrition(f.foodName, n, user?.goal || 'maintain');
-      const streak = await updateStreak(userId);
       const color  = getFoodColor(n);
       const displayName = f.foodNameTH || f.foodName;
-      return reply(event, [{ ...flexCalorieResult(displayName, f.amountDesc || '1 serving', n, color, tip, streak, true),
-        quickReply: { items: [
-          { type: 'action', action: { type: 'message', label: '↩️ ยกเลิก', text: 'ยกเลิก' } },
-          { type: 'action', action: { type: 'message', label: '📊 สรุปวัน', text: 'สรุปวันนี้' } },
-        ]},
-      }]);
+
+      // เก็บ state รอยืนยัน (ยังไม่บันทึก)
+      if (userState[userId]?.timeout) clearTimeout(userState[userId].timeout);
+      userState[userId] = {
+        step: 'confirm_image_food',
+        food: f, nutrition: n, tip, color, displayName,
+        timeout: setTimeout(async () => {
+          if (userState[userId]?.step === 'confirm_image_food') {
+            delete userState[userId];
+            try {
+              await saveFoodLog(userId, { ...f, foodName: displayName, mealType: 'other' }, n);
+              await updateStreak(userId);
+              await client.pushMessage({ to: userId, messages: [flexText(`⏰ บันทึก "${displayName}" อัตโนมัติแล้วครับ`)] });
+            } catch(e) { console.error('auto-save error:', e.message); }
+          }
+        }, 60000),
+      };
+      return reply(event, [flexImageFoodConfirm(displayName, f.amountDesc, n, color, tip)]);
     } catch {
       return reply(event, [flexText('❌ อ่านรูปไม่ได้ครับ ลองส่งใหม่นะครับ')]);
     }
@@ -682,6 +692,47 @@ async function handleEvent(event) {
   // ── State Machine ────────────────────────────────────────────
   if (userState[userId]) {
     const st = userState[userId];
+
+    // ยืนยันอาหารจากรูป
+    if (st.step === 'confirm_image_food') {
+      const { food: cf, nutrition: cn, displayName: dn, timeout: tmout } = st;
+      if (tmout) clearTimeout(tmout);
+      delete userState[userId];
+
+      // ผู้ใช้พิมพ์แก้ไขชื่อ
+      const isCorrect = ['ถูก','ใช่','ok','ตกลง','บันทึก','ยืนยัน','correct','yes'].includes(msg.toLowerCase());
+      const isCancel  = ['ไม่','ยกเลิก','ผิด','cancel','no'].includes(msg.toLowerCase());
+
+      if (isCancel) {
+        return reply(event, [flexText(`❌ ยกเลิกแล้วครับ ไม่ได้บันทึก "${dn}"
+
+พิมพ์ชื่ออาหารที่ถูกต้องมาได้เลยครับ`)]);
+      }
+
+      // ถ้าพิมพ์ชื่อใหม่ (ไม่ใช่คำยืนยัน)
+      let saveName = dn;
+      let saveFood = cf;
+      let saveN    = cn;
+      if (!isCorrect && msg.length > 1) {
+        // ใช้ชื่อที่พิมพ์มาแทน
+        saveName = msg;
+        const newN = await fetchNutrition(msg);
+        if (newN) saveN = newN;
+      }
+
+      try {
+        await saveFoodLog(userId, { ...saveFood, foodName: saveName, mealType: 'other' }, saveN);
+      } catch(e) { console.error('saveFoodLog confirm error:', e.message); }
+      const streak = await updateStreak(userId);
+      const user2  = await getOrCreateUser(userId);
+      const newColor = getFoodColor(saveN);
+      return reply(event, [{ ...flexCalorieResult(saveName, saveFood.amountDesc || '1 serving', saveN, newColor, st.tip, streak, true),
+        quickReply: { items: [
+          { type: 'action', action: { type: 'message', label: '↩️ ยกเลิก', text: 'ยกเลิก' } },
+          { type: 'action', action: { type: 'message', label: '📊 สรุปวัน', text: 'สรุปวันนี้' } },
+        ]},
+      }]);
+    }
 
     if (st.step === 'onboarding_goal') {
       const map = { 'ลดน้ำหนัก': 'lose', 'เพิ่มกล้ามเนื้อ': 'gain', 'รักษาน้ำหนัก': 'maintain' };
@@ -1087,6 +1138,38 @@ function flexWelcome() {
 }
 
 // ── Calorie Result ────────────────────────────────────────────
+function flexImageFoodConfirm(name, amount, n, color, tip) {
+  return { type: 'flex', altText: `📷 "${name}" ถูกต้องไหมครับ?`,
+    contents: { type: 'bubble',
+      header: { type: 'box', layout: 'vertical', backgroundColor: '#0f172a', paddingAll: '14px', contents: [
+        { type: 'text', text: '📷 วิเคราะห์จากรูปแล้วครับ', size: 'xs', color: '#94a3b8' },
+        { type: 'text', text: 'ถูกต้องไหมครับ?', size: 'lg', weight: 'bold', color: '#ffffff', margin: 'xs' },
+      ]},
+      body: { type: 'box', layout: 'vertical', paddingAll: '14px', spacing: 'sm', contents: [
+        { type: 'box', layout: 'horizontal', backgroundColor: '#1D9E7520', cornerRadius: '8px', paddingAll: '10px', contents: [
+          { type: 'text', text: '🍽️', size: 'sm', flex: 0 },
+          { type: 'box', layout: 'vertical', flex: 1, paddingStart: '8px', contents: [
+            { type: 'text', text: name, size: 'md', weight: 'bold', color: '#ffffff', wrap: true },
+            { type: 'text', text: amount || '1 serving', size: 'xs', color: '#94a3b8', margin: 'xs' },
+          ]},
+          { type: 'text', text: `${n.calories} kcal`, size: 'sm', weight: 'bold', color: '#1D9E75', flex: 0 },
+        ]},
+        { type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'sm', contents: [
+          { type: 'text', text: `คาร์บ ${n.carbs}g`, size: 'xs', color: '#378ADD', flex: 1 },
+          { type: 'text', text: `โปรตีน ${n.protein}g`, size: 'xs', color: '#1D9E75', flex: 1 },
+          { type: 'text', text: `ไขมัน ${n.fatTotal}g`, size: 'xs', color: '#EF9F27', flex: 1 },
+        ]},
+        { type: 'separator', margin: 'md' },
+        { type: 'text', text: '✏️ ถ้าไม่ถูก พิมพ์ชื่ออาหารที่ถูกต้องมาได้เลยครับ หรือกดปุ่มด้านล่างครับ', size: 'xs', color: '#94a3b8', wrap: true, margin: 'sm' },
+      ]},
+      footer: { type: 'box', layout: 'vertical', paddingAll: '12px', spacing: 'sm', contents: [
+        { type: 'button', style: 'primary', color: '#1D9E75', height: 'sm', action: { type: 'message', label: '✅ ถูกต้อง บันทึกเลย', text: 'ยืนยัน' } },
+        { type: 'button', style: 'secondary', height: 'sm', action: { type: 'message', label: '❌ ไม่ถูก ยกเลิก', text: 'ยกเลิก' } },
+      ]},
+    },
+  };
+}
+
 function flexCalorieResult(name, amount, n, color, tip, streak, isImage) {
   const fatItems = [];
   if (n.fatOmega3 > 0.5)     fatItems.push({ label: '🟢 Omega-3 (ดีมาก)', val: `${n.fatOmega3}g`, color: '#1D9E75' });
@@ -1586,6 +1669,7 @@ function flexPayment(period, price) {
     },
   };
 }
+
 
 // ══════════════════════════════════════════════════════════════
 // START SERVER
