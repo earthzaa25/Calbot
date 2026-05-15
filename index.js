@@ -1655,8 +1655,18 @@ function flexPayment(period, price) {
       body: { type: 'box', layout: 'vertical', paddingAll: '16px', spacing: 'sm', contents: [
         { type: 'text', text: 'โอนเงินมาที่ครับ', size: 'sm', color: '#64748b' },
         { type: 'separator', margin: 'sm' },
+        // PromptPay
+        { type: 'box', layout: 'horizontal', margin: 'sm', backgroundColor: '#f0fdf4', cornerRadius: '8px', paddingAll: '10px', contents: [
+          { type: 'text', text: '📱', size: 'sm', flex: 0 },
+          { type: 'box', layout: 'vertical', flex: 1, paddingStart: '8px', contents: [
+            { type: 'text', text: 'PromptPay', size: 'xs', color: '#64748b' },
+            { type: 'text', text: '082-970-5941', size: 'md', weight: 'bold', color: '#0f172a', margin: 'xs' },
+          ]},
+        ]},
+        { type: 'separator', margin: 'sm' },
+        // บัญชีธนาคาร
         { type: 'box', layout: 'horizontal', margin: 'sm', contents: [
-          { type: 'text', text: 'ธนาคาร',   size: 'sm', color: '#94a3b8', flex: 1 },
+          { type: 'text', text: 'ธนาคาร', size: 'sm', color: '#94a3b8', flex: 1 },
           { type: 'text', text: 'กสิกรไทย (KBank)', size: 'sm', color: '#0f172a', flex: 2, align: 'end' },
         ]},
         { type: 'box', layout: 'horizontal', contents: [
